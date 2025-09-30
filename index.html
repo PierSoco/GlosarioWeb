@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITermino</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <meta name="theme-color" content="#4285f4">
+</head>
+<body>
+    <header>
+        <h1><samp class="titulo">IT</samp>erminos</h1>
+        <div class="theme-toggle" data-tooltip="Cambiar tema">
+            <button id="theme-switch" aria-label="Cambiar entre tema claro y oscuro">
+                <span class="icon-light"><i class="fas fa-sun"></i></span>
+                <span class="icon-dark"><i class="fas fa-moon"></i></span>
+            </button>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#" id="search-button"><i class="fas fa-search"></i></a></li>
+            <li><a href="#search" class="active" data-tab="search">Terminos</a></li>
+            <li><a href="#favorites" data-tab="favorites">Favoritos</a></li>
+            <li><a href="#add" data-tab="add">Añadir Término</a></li>
+            <li><a href="#stats" data-tab="stats">Estadísticas</a></li>
+            <li><a href="#irregular-verbs" data-tab="irregular-verbs">Verbos Irregulares</a></li>
+            <li><a href="#settings" data-tab="settings">Configuración</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <!-- Sección de búsqueda -->
+        <section id="search" class="tab-content active">
+            <div id="search-results" class="search-results">
+                <div id="results-count" class="results-count"></div>
+                <ul id="results-list"></ul>
+            </div>
+        </section>
+
+        <!-- Sección de favoritos -->
+        <section id="favorites" class="tab-content">
+            <h2>Términos favoritos</h2>
+            <div class="favorites-controls">
+                <select id="favorites-sort" aria-label="Ordenar favoritos">
+                    <option value="alpha">Alfabéticamente</option>
+                    <option value="recent">Más recientes</option>
+                    <option value="category">Por categoría</option>
+                </select>
+                <button id="export-favorites" class="small-button">Exportar favoritos</button>
+            </div>
+            <ul id="favorites-list" class="favorites-list"></ul>
+            <div id="no-favorites" class="no-data-message">
+                <p>No tienes términos favoritos guardados.</p>
+                <p>Marca términos como favoritos haciendo clic en el ícono ⭐ al buscar términos.</p>
+            </div>
+        </section>
+
+        <!-- Sección para añadir términos -->
+        <section id="add" class="tab-content">
+            <h2>Añadir nuevo término</h2>
+            <form id="add-term-form">
+                <div class="form-group">
+                    <label for="term-input">Término en inglés:</label>
+                    <input type="text" id="term-input" required>
+                    <div class="validation-message" id="term-validation"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pronunciation-input">Pronunciación:</label>
+                    <input type="text" id="pronunciation-input">
+                    <button type="button" id="generate-pronunciation" class="small-button">Generar</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="translation-input">Traducción al español:</label>
+                    <input type="text" id="translation-input" required>
+                    <div class="validation-message" id="translation-validation"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="definition-input">Definición:</label>
+                    <textarea id="definition-input" rows="3" required></textarea>
+                    <div class="validation-message" id="definition-validation"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="example-input">Ejemplo de uso:</label>
+                    <textarea id="example-input" rows="2"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category-input">Categoría:</label>
+                    <select id="category-input" required>
+                        <option value="">Selecciona una categoría</option>
+                        <option value="programming">Programación</option>
+                        <option value="networking">Redes</option>
+                        <option value="security">Seguridad</option>
+                        <option value="hardware">Hardware</option>
+                        <option value="software">Software</option>
+                        <option value="other">Otra</option>
+                    </select>
+                    <div class="validation-message" id="category-validation"></div>
+                </div>
+                
+                <div class="form-group" id="other-category-group" style="display: none;">
+                    <label for="other-category-input">Especificar categoría:</label>
+                    <input type="text" id="other-category-input">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="primary-button">Guardar término</button>
+                    <button type="reset" class="secondary-button">Limpiar</button>
+                </div>
+            </form>
+            
+            <div class="import-export">
+                <h3>Importar/Exportar términos</h3>
+                <div class="import-container">
+                    <label for="import-file" class="file-input-label">Seleccionar archivo</label>
+                    <input type="file" id="import-file" accept=".json,.csv,.txt">
+                    <button id="import-button" class="small-button" disabled>Importar</button>
+                </div>
+                <div class="export-container">
+                    <button id="export-json" class="small-button">Exportar JSON</button>
+                    <button id="export-csv" class="small-button">Exportar CSV</button>
+                    <button id="export-txt" class="small-button">Exportar TXT</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de estadísticas -->
+        <section id="stats" class="tab-content">
+            <h2>Estadísticas del glosario</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total de términos</h3>
+                    <div class="stat-value" id="total-terms">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Términos favoritos</h3>
+                    <div class="stat-value" id="favorite-terms">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Búsquedas realizadas</h3>
+                    <div class="stat-value" id="total-searches">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Términos añadidos hoy</h3>
+                    <div class="stat-value" id="terms-today">0</div>
+                </div>
+            </div>
+            
+            <div class="stats-charts">
+                <div class="chart-container">
+                    <h3>Términos por categoría</h3>
+                    <canvas id="categories-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Términos más buscados</h3>
+                    <ul id="top-searches" class="top-list"></ul>
+                </div>
+            </div>
+            
+            <div class="stats-actions">
+                <button id="reset-stats" class="secondary-button">Reiniciar estadísticas</button>
+                <button id="export-stats" class="small-button">Exportar estadísticas</button>
+            </div>
+        </section>
+
+        <section id="irregular-verbs" class="tab-content">
+            <h2>Verbos Irregulares en Pasado Simple</h2>
+            
+            <!-- Agregar buscador de verbos -->
+            <div class="verbs-search-container">
+                <div class="search-input-container">
+                    <input type="text" id="verbs-search-input" placeholder="Buscar verbo irregular..." aria-label="Buscar verbo irregular">
+                    <button id="clear-verbs-search" class="small-button" aria-label="Limpiar búsqueda">Limpiar</button>
+                </div>
+                <div id="verbs-count" class="results-count"></div>
+            </div>
+            
+            <table class="verb-table">
+                <thead>
+                    <tr>
+                        <th>Infinitivo</th>
+                        <th>Pasado Simple</th>
+                    </tr>
+                </thead>
+                <tbody id="verbs-table-body">
+                    <!-- Se completa desde JS -->
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Sección de configuración -->
+        <section id="settings" class="tab-content">
+            <h2>Configuración</h2>
+            
+            <div class="settings-group">
+                <h3>Apariencia</h3>
+                <div class="setting-item">
+                    <label for="theme-toggle-setting">Tema oscuro:</label>
+                    <div class="theme-toggle" data-tooltip="Cambiar tema">
+                        <button id="theme-switch-setting" aria-label="Cambiar entre tema claro y oscuro">
+                            <span class="icon-light">☀️</span>
+                            <span class="icon-dark">🌙</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label for="font-size">Tamaño de fuente:</label>
+                    <input type="range" id="font-size" min="80" max="120" step="10" value="100">
+                    <span id="font-size-value">100%</span>
+                </div>
+            </div>
+            
+            <div class="settings-group">
+                <h3>Pronunciación</h3>
+                <div class="setting-item">
+                    <label for="voice-select">Voz:</label>
+                    <select id="voice-select">
+                        <option value="">Cargando voces...</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="speech-rate">Velocidad:</label>
+                    <input type="range" id="speech-rate" min="0.5" max="2" step="0.1" value="1">
+                    <span id="speech-rate-value">1x</span>
+                </div>
+                <div class="setting-item">
+                    <button id="test-voice" class="small-button">Probar voz</button>
+                </div>
+            </div>
+            
+            <div class="settings-group">
+                <h3>Datos</h3>
+                <div class="setting-item">
+                    <button id="backup-data" class="small-button">Crear copia de seguridad</button>
+                    <button id="restore-data" class="small-button">Restaurar datos</button>
+                </div>
+                <div class="setting-item">
+                    <button id="clear-data" class="danger-button">Borrar todos los datos</button>
+                </div>
+            </div>
+            
+            <div class="settings-group">
+                <h3>Acerca de</h3>
+                <div class="about-info">
+                    <p><strong>Glosario Técnico de Inglés</strong></p>
+                    <p>Versión 2.0</p>
+                    <p>Desarrollado con ❤️ para ayudarte a aprender terminología técnica en inglés</p>
+                </div>
+            </div>
+        </section>
+
+        <div id="search-modal" class="search-modal hidden">
+            <div class="search-modal-content">
+                <div class="search-header">
+                <h2>Buscar término</h2>
+                <button id="close-search-modal" class="small-button">✕</button>
+                </div>
+                <input id="search-input" class="search-input" type="text" placeholder="Buscar término...">
+
+                <div class="search-container">
+                    <div class="search-filters">
+                        <select id="category-filter" aria-label="Filtrar por categoría">
+                            <option value="">Todas las categorías</option>
+                            <option value="programming">Programación</option>
+                            <option value="networking">Redes</option>
+                            <option value="security">Seguridad</option>
+                            <option value="hardware">Hardware</option>
+                            <option value="software">Software</option>
+                        </select>
+                        <div class="search-options">
+                            <label><input type="checkbox" id="exact-match"> Coincidencia exacta</label>
+                            <label><input type="checkbox" id="search-description"> Buscar en descripciones</label>
+                        </div>
+
+                        <div class="search-advanced">
+                            <label>Ordenar por:
+                                <select id="sort-filter">
+                                <option value="alpha">Alfabético</option>
+                                <option value="category">Categoría</option>
+                                <option value="favorites">Favoritos primero</option>
+                                </select>
+                            </label>
+                            <label><input type="checkbox" id="only-favorites"> Solo favoritos</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal para detalles de término -->
+    <div id="term-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="term-details">
+                <div class="term-header">
+                    <h2 id="modal-term"></h2>
+                    <div class="term-actions">
+                        <button id="pronounce-term" class="icon-button" aria-label="Pronunciar término">🔊</button>
+                        <button id="toggle-favorite" class="icon-button" aria-label="Marcar como favorito">☆</button>
+                    </div>
+                </div>
+                <div class="term-pronunciation">
+                    <span id="modal-pronunciation"></span>
+                </div>
+                <div class="term-translation">
+                    <h3>Traducción:</h3>
+                    <p id="modal-translation"></p>
+                </div>
+                <div class="term-definition">
+                    <h3>Definición:</h3>
+                    <p id="modal-definition"></p>
+                </div>
+                <div class="term-example">
+                    <h3>Ejemplo:</h3>
+                    <p id="modal-example"></p>
+                </div>
+                <div class="term-category">
+                    <span id="modal-category" class="category-tag"></span>
+                </div>
+                <div class="term-footer">
+                    <button id="edit-term" class="small-button">Editar</button>
+                    <button id="delete-term" class="danger-button">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content small-modal">
+            <span class="close-modal">&times;</span>
+            <h3 id="confirm-title">Confirmar acción</h3>
+            <p id="confirm-message">¿Estás seguro de que deseas realizar esta acción?</p>
+            <div class="modal-actions">
+                <button id="confirm-yes" class="danger-button">Sí</button>
+                <button id="confirm-no" class="secondary-button">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div id="notification" class="notification"></div>
+
+    <script src="script.js"></script>
+    <script>
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registrado'))
+                .catch(err => console.error('Error al registrar Service Worker:', err));
+        }
+    </script>
+</body>
+</html>
