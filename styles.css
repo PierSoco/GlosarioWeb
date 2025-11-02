@@ -1015,113 +1015,6 @@ main {
   }
 }
 
-/* Enhanced Responsive Design */
-@media (max-width: 1024px) {
-  main {
-    padding: 1.5rem;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  main {
-    padding: 1rem;
-  }
-
-  header {
-    padding: 1rem;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  header h1 {
-    font-size: 1.5rem;
-  }
-
-  nav ul {
-    padding: 0 0.5rem;
-  }
-
-  nav ul li a {
-    padding: 0.75rem 1rem;
-    font-size: 0.9rem;
-  }
-
-  .search-filters {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-options {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-
-  .stat-card {
-    padding: 1.5rem;
-  }
-
-  .stat-value {
-    font-size: 2rem;
-  }
-
-  .modal-content {
-    margin: 2rem 1rem;
-    padding: 2rem;
-  }
-
-  .result-item {
-    padding: 1.5rem;
-  }
-
-  .result-term {
-    font-size: 1.25rem;
-  }
-
-  .setting-item {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
-  .setting-item input[type="range"],
-  .setting-item select {
-    max-width: none;
-    margin: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .verb-table th,
-  .verb-table td {
-    padding: 0.75rem;
-    font-size: 0.9rem;
-  }
-
-  .notification {
-    bottom: 1rem;
-    right: 1rem;
-    left: 1rem;
-    transform: translateY(100px);
-  }
-
-  .notification.show {
-    transform: translateY(0);
-  }
-}
-
 /* Utility Classes */
 .hidden {
   display: none !important;
@@ -1164,26 +1057,7 @@ main {
   outline-offset: 2px;
 }
 
-/* Print Styles */
-@media print {
-  header,
-  nav,
-  .theme-toggle,
-  .modal {
-    display: none !important;
-  }
 
-  body {
-    background: white !important;
-    color: black !important;
-  }
-
-  .result-item {
-    break-inside: avoid;
-    box-shadow: none !important;
-    border: 1px solid #ccc !important;
-  }
-}
 
 /* Favorite Button Styles */
 .favorite-button {
@@ -1378,12 +1252,6 @@ main {
   color: var(--accent-color);
 }
 
-
-
-
-
-
-
 /* From Uiverse.io by vnuny */ 
 .container {
   position: fixed;
@@ -1523,8 +1391,211 @@ main {
   display: none;
 }
 
+/* Tenses section styles */
+.tenses-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center; 
+  margin: 1rem 0 3rem 0;
+}
+
+#tenses .tenses-controls label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+#tenses .tenses-controls select {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.tenses-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.tenses-display {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.tenses-legend {
+  padding: 1rem;
+  background: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.tenses-legend h3 {
+  margin-bottom: 0.5rem;
+}
+
+.tenses-table-wrap {
+  overflow: auto;
+}
+
+.tenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.tenses-table thead th {
+  background: linear-gradient(90deg, rgba(102,126,234,0.08), transparent);
+  padding: 0.9rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tenses-table tbody td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px dashed var(--border-color);
+  vertical-align: top;
+  color: var(--text-secondary);
+}
+
+.tenses-table tbody tr:hover td {
+  background: rgba(102,126,234,0.03);
+  color: var(--text-primary);
+}
+
+.tenses-table .structure {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.tenses-table .examples {
+  font-size: 0.95rem;
+}
 
 
+/* Improved UI for Tenses section */
+.tenses-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 1rem 0 1.25rem 0;
+}
+
+.tenses-controls .control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tenses-controls label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.tenses-controls select {
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: linear-gradient(180deg, var(--bg-card), var(--bg-secondary));
+  min-width: 160px;
+  box-shadow: var(--shadow-sm);
+}
+
+.control-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tenses-cards {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+  gap: 1.5rem;
+  width: 100% !important;
+  max-width: 1400px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  align-items: stretch;
+  justify-items: stretch;
+  padding: 1rem;
+}
+.tenses-cards {
+  grid-column: 1 / -1;
+}
+.tenses-cards > * {
+  min-width: 0;        /* evita que textos largos ensanchen la celda */
+  height: 100%;
+  width: auto !important; /* no forzar 100% dentro del grid */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.tenses-card {
+  background: linear-gradient(180deg, var(--bg-card), var(--bg-secondary));
+  border-radius: var(--border-radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.tenses-card h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--primary-color);
+}
+
+.tenses-card .structure {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.tenses-card .examples {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.tenses-card .card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.tenses-card .icon-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.tenses-card .icon-btn:hover {
+  background: var(--primary-light);
+  color: white;
+  border-color: transparent;
+}
+
+.tenses-legend {
+  padding: 1rem;
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  background: linear-gradient(180deg, var(--bg-card), var(--bg-secondary));
+  box-shadow: var(--shadow-sm);
+}
 
 .search-modal {
   position: fixed;
@@ -1563,4 +1634,175 @@ main {
 
 .hidden {
   display: none;
+}
+
+.title-tiempos {
+  display: inline-flex;              /* mantiene el ícono alineado con el texto */
+  align-items: center;
+  gap: 0.5em;
+  color: var(--primary-color);
+  flex-wrap: wrap;                   /* ✅ permite que el texto salte de línea si no entra */
+  line-height: 1.3;
+  word-break: normal;                /* evita cortes raros dentro de las palabras */
+  white-space: normal;               /* deja que el texto fluya */
+}
+
+.title-tiempos span {
+  color: var(--text-secondary);
+  margin-left: 0.25em;               /* pequeño espacio natural entre frases */
+}
+
+.tenses-subencabezado{
+  display: flex; 
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  main {
+    padding: 1.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .tenses-cards {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  }
+}
+@media (max-width: 900px) {
+  .tenses-info {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  main {
+    padding: 1rem;
+  }
+
+  header {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  nav ul {
+    padding: 0 0.5rem;
+  }
+
+  nav ul li a {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .search-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-options {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    padding: 1.5rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+  }
+
+  .modal-content {
+    margin: 2rem 1rem;
+    padding: 2rem;
+  }
+
+  .result-item {
+    padding: 1.5rem;
+  }
+
+  .result-term {
+    font-size: 1.25rem;
+  }
+
+  .setting-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .setting-item input[type="range"],
+  .setting-item select {
+    max-width: none;
+    margin: 0;
+  }
+  .tenses-cards {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+  }
+  .control-actions {
+    flex-direction: column;
+     width: 100%; 
+     justify-content: flex-start; 
+  }
+  .tenses-controls { 
+    gap: 0.5rem; 
+  }
+  .tenses-subencabezado{
+    flex-direction: column;
+  }
+}
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .verb-table th,
+  .verb-table td {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .notification {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+    transform: translateY(100px);
+  }
+
+  .notification.show {
+    transform: translateY(0);
+  }
+  .tenses-cards {
+    grid-template-columns: 1fr !important;
+  }
+}
+/* Print Styles */
+@media print {
+  header,
+  nav,
+  .theme-toggle,
+  .modal {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .result-item {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
 }

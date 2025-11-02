@@ -28,6 +28,7 @@
             <li><a href="#add" data-tab="add">Añadir Término</a></li>
             <li><a href="#stats" data-tab="stats">Estadísticas</a></li>
             <li><a href="#irregular-verbs" data-tab="irregular-verbs">Verbos Irregulares</a></li>
+            <li><a href="#tenses" data-tab="tenses">Tiempos</a></li>
             <li><a href="#settings" data-tab="settings">Configuración</a></li>
         </ul>
     </nav>
@@ -39,6 +40,89 @@
                 <div id="results-count" class="results-count"></div>
                 <ul id="results-list"></ul>
             </div>
+        </section>
+
+        <!-- Sección de tiempos verbales -->
+        <section id="tenses" class="tab-content">
+            <h2 class="title-tiempos">
+                <i class="fas fa-clock"></i>
+                Tiempos Verbales
+                <span>y estructura</span>
+            </h2>
+
+            <div class="tenses-controls">
+                <div class="tenses-intro" style="background:var(--bg-secondary);border-radius:var(--border-radius-lg);padding:1.2em 1.5em;margin-bottom:1.2em;display:flex; flex-direction: column; align-items:center;gap:1.5em;box-shadow:var(--shadow-sm)">
+                    <div style="display: flex; gap: 1rem;">
+                        <i class="fas fa-language" style="font-size:2em; color:var(--primary-color); margin-bottom: 0.5rem;"></i>
+                        <strong>Explora los tiempos verbales:</strong>
+                    </div>
+                    <div class="tenses-subencabezado">
+                        <aside class="tenses-legend" style="background:var(--bg-tertiary);border-radius:var(--border-radius-lg);padding:1em 1.5em;box-shadow:var(--shadow-sm);min-width:220px;flex:1;max-width:320px;">
+                            <h3 style="color:var(--primary-color);font-size:1.2em;display:flex;align-items:center;gap:0.5em"><i class="fas fa-info-circle"></i> Acciones</h3>
+                            <ul style="margin:0.5em 0 0 1em;padding:0;list-style:disc;color:var(--text-secondary);font-size:1em">
+                                <li>Selecciona un <b style="color: var(--primary-color);">verbo</b> y <b style="color: var(--primary-color);">sujeto</b> para ver ejemplos claros.</li>
+                                <li>Usa los botones para <span style="color:var(--primary-color); margin-left: 0.5rem;"><i class="fas fa-copy"></i> copiar</span> o <span style="color:var(--accent-color); margin-left: 0.3rem;"><i class="fas fa-volume-up"></i> escuchar</span> ejemplos.</li>
+                            </ul>
+                        </aside>
+    
+                        <aside class="tenses-legend" style="background:var(--bg-tertiary);border-radius:var(--border-radius-lg);padding:1em 1.5em;box-shadow:var(--shadow-sm);min-width:220px;flex:1;max-width:320px;">
+                            <h3 style="color:var(--primary-color);font-size:1.2em;display:flex;align-items:center;gap:0.5em"><i class="fas fa-info-circle"></i> Estructura básica</h3>
+                            <ul style="margin:0.7em 0 0 1em;padding:0;list-style:disc;color:var(--text-secondary);font-size:1em">
+                                <li><strong>Sujeto</strong> <span style="color:var(--primary-color)">(I / You / He / She / We / They)</span></li>
+                                <li><strong>Verbo</strong> <span style="color:var(--accent-color)">(forma según tiempo)</span></li>
+                                <li><strong>Objeto / Complemento</strong> <span style="color:var(--text-muted)">(opcional)</span></li>
+                            </ul>
+                        </aside>
+                    </div>
+                </div>
+
+                <div class="tenses-controls" style="display:flex; flex-wrap:wrap;gap:2em; align-items:center; justify-content:space-evenly; margin-bottom:1.5em">
+                    <div class="control-group" style="min-width:180px;">
+                        <label for="tenses-verb-input" style="font-weight:600;color:var(--primary-color);display:flex;align-items:center;gap:0.5em"><i class="fas fa-pen-nib"></i> Verbo</label>
+                        <!-- Input con datalist para autocompletar, mantenemos el select oculto por retrocompatibilidad con el JS existente -->
+                        <input id="tenses-verb-input" list="tenses-verb-datalist" placeholder="Escribe un verbo..." aria-label="Seleccionar o escribir verbo" style="font-size:1.1em;padding:0.5em 1em;border-radius:var(--border-radius);border:1px solid var(--border-color);background:var(--bg-card);color:var(--text-primary);margin-top:0.3em;min-width:200px;">
+                        <datalist id="tenses-verb-datalist"></datalist>
+                        <select id="tenses-verb-select" aria-label="Seleccionar verbo" style="display:none;font-size:1.1em;padding:0.5em 1em;border-radius:var(--border-radius);border:1px solid var(--border-color);background:var(--bg-card);color:var(--text-primary);margin-top:0.3em;"></select>
+                    </div>
+                    <div class="control-group" style="min-width:180px;">
+                        <label for="tenses-subject-select" style="font-weight:600;color:var(--primary-color);display:flex;align-items:center;gap:0.5em"><i class="fas fa-user"></i> Sujeto</label>
+                        <select id="tenses-subject-select" aria-label="Seleccionar sujeto" style="font-size:1.1em;padding:0.5em 1em;border-radius:var(--border-radius);border:1px solid var(--border-color);background:var(--bg-card);color:var(--text-primary);margin-top:0.3em;">
+                            <option value="I">I</option>
+                            <option value="You">You</option>
+                            <option value="He">He</option>
+                            <option value="She">She</option>
+                            <option value="We">We</option>
+                            <option value="They">They</option>
+                        </select>
+                    </div>
+                    <div class="control-actions" style="display:flex;gap:1em;align-items:center;">
+                        <button id="tenses-view-toggle" class="small-button" style="display:flex;align-items:center;gap:0.5em"><i class="fas fa-th-large"></i> Ver en tarjetas</button>
+                        <button id="tenses-copy-all" class="small-button" style="display:flex;align-items:center;gap:0.5em"><i class="fas fa-copy"></i> Copiar ejemplos</button>
+                        <button id="tenses-speak-example" class="small-button" style="display:flex;align-items:center;gap:0.5em"><i class="fas fa-volume-up"></i> Escuchar ejemplo</button>
+                    </div>
+                </div>
+
+                <div class="tenses-info">
+
+                    <div class="tenses-display">
+                        <!-- Contenedor para tarjetas -->
+                        <div id="tenses-cards" class="tenses-cards"></div>
+
+                        <!-- Tabla alternativa (oculta por defecto) -->
+                        <div class="tenses-table-wrap hidden" id="tenses-table-wrap" style="animation:fadeInUp 0.6s;">
+                            <table class="tenses-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tiempo</th>
+                                        <th>Estructura</th>
+                                        <th>Ejemplo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tenses-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
         </section>
 
         <!-- Sección de favoritos -->

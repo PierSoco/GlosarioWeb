@@ -101,6 +101,344 @@ document.addEventListener("DOMContentLoaded", () => {
 
 })
 
+// -------------------- Tenses module --------------------
+// Inicializa la sección de tiempos verbales con UI mejorada
+// -------------------- Tenses module (fix "siempre mostrar") --------------------
+function initTenses() {
+  const select = document.getElementById("tenses-verb-select");
+  const subjectSelect = document.getElementById("tenses-subject-select");
+  const viewToggle = document.getElementById("tenses-view-toggle");
+  const copyAllBtn = document.getElementById("tenses-copy-all");
+  const speakBtn = document.getElementById("tenses-speak-example");
+  const datalist = document.getElementById("tenses-verb-datalist");
+  const verbInput = document.getElementById("tenses-verb-input");
+  const verbTypeIndicator = document.getElementById("verb-type-indicator"); // opcional en HTML
+
+  if (!select) return;
+
+  // 1) Fuente de verbos (irregulares + comunes)
+  const commonRegularVerbs = [
+    "work","play","open","close","listen","watch","learn","fix","build","start","stop","study","help","like",
+    "love","need","want","use","try","call","talk"
+  ];
+  const irregularVerbs = verbosIrregulares.map(v => v.infinitivo);
+  const verbs = Array.from(new Set([...irregularVerbs, ...commonRegularVerbs])).sort();
+
+  // 2) Default SIEMPRE DISPONIBLE
+  const DEFAULT_VERB = verbs[0];
+
+  // 3) Poblado de <select> y <datalist>
+  select.innerHTML = "";
+  verbs.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+  if (datalist) {
+    datalist.innerHTML = "";
+    verbs.forEach(v => {
+      const o = document.createElement("option");
+      o.value = v;
+      datalist.appendChild(o);
+    });
+  }
+
+  // 4) Estado inicial seguro: si no hay nada elegido, usar el primero
+  select.value = DEFAULT_VERB;
+  if (verbInput) verbInput.value = ""; // el usuario puede escribir; si deja vacío, usamos DEFAULT_VERB
+
+  // 5) Indicador regular/irregular (opcional)
+  function updateVerbTypeIndicator(verb) {
+    if (!verbTypeIndicator) return;
+    const isIrregular = verbosIrregulares.some(v => v.infinitivo === verb);
+    verbTypeIndicator.textContent = isIrregular ? "Irregular" : "Regular";
+    verbTypeIndicator.className = `verb-type ${isIrregular ? "irregular" : "regular"}`;
+  }
+
+  // 6) Helper: obtener SIEMPRE un verbo válido
+  function getActiveVerb() {
+    const typed = (verbInput?.value || "").trim();
+    // a) si el usuario escribió algo que coincide exacto con la lista
+    const exact = verbs.find(v => v.toLowerCase() === typed.toLowerCase());
+    if (exact) return exact;
+
+    // b) si hay un comienzo coincidente, tomamos la primera sugerencia
+    if (typed) {
+      const suggestion = verbs.find(v => v.toLowerCase().startsWith(typed.toLowerCase()));
+      if (suggestion) return suggestion;
+    }
+
+    // c) si no escribió o no matchea, usar el valor del select si está,
+    //    y si tampoco hay, caer al DEFAULT_VERB
+    return select.value || DEFAULT_VERB;
+  }
+
+  // 7) Render SIEMPRE con un verbo válido
+  let viewMode = "cards"; // "cards" | "table"
+  function render() {
+    const verb = getActiveVerb();
+    // sin parpadeos: mantener sincronizado el select con el activo
+    select.value = verb;
+
+    updateVerbTypeIndicator(verb);
+    const subject = subjectSelect ? subjectSelect.value : "I";
+    renderTensesView(verb, subject, viewMode);
+  }
+
+  // 8) Listeners
+  select.addEventListener("change", () => {
+    // si eligen del select, respetarlo y renderizar
+    if (verbInput) verbInput.value = ""; // limpiar input para evitar confusión
+    render();
+  });
+
+  if (subjectSelect) {
+    subjectSelect.addEventListener("change", render);
+  }
+
+  if (verbInput) {
+    // mientras escribe, no cortamos el render: que SIEMPRE haya algo en pantalla
+    verbInput.addEventListener("input", () => {
+      // no exigimos match — render con getActiveVerb() que ya cae al default si no coincide
+      render();
+    });
+    verbInput.addEventListener("change", render);
+    verbInput.addEventListener("blur", render);
+    verbInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        render();
+      }
+    });
+  }
+
+  function updateViewToggleUI(mode) {
+    if (!viewToggle) return;
+    if (mode === "cards") {
+      viewToggle.innerHTML = '<i class="fas fa-table"></i> Ver en tabla';
+      viewToggle.setAttribute("aria-label", "Ver en tabla");
+    } else {
+      viewToggle.innerHTML = '<i class="fas fa-th-large"></i> Ver en tarjetas';
+      viewToggle.setAttribute("aria-label", "Ver en tarjetas");
+    }
+  }
+
+  if (viewToggle) {
+    updateViewToggleUI(viewMode);
+    viewToggle.addEventListener("click", () => {
+      viewMode = viewMode === "cards" ? "table" : "cards";
+      updateViewToggleUI(viewMode);
+
+      const tableWrap = document.getElementById("tenses-table-wrap");
+      const cardsWrap = document.getElementById("tenses-cards");
+      if (viewMode === "cards") {
+        tableWrap?.classList.add("hidden");
+        cardsWrap?.classList.remove("hidden");
+      } else {
+        tableWrap?.classList.remove("hidden");
+        cardsWrap?.classList.add("hidden");
+      }
+      render();
+    });
+  }
+
+  if (copyAllBtn) {
+    copyAllBtn.addEventListener("click", () => {
+      const verb = getActiveVerb();
+      const subject = subjectSelect ? subjectSelect.value : "I";
+      copyAllExamples(verb, subject);
+    });
+  }
+
+  if (speakBtn) {
+    speakBtn.addEventListener("click", () => {
+      const verb = getActiveVerb();
+      const forms = conjugateAll(verb);
+      const subject = subjectSelect ? subjectSelect.value : "I";
+      const firstExample = generateExampleText(TENSES[0], forms, subject);
+      pronunciar(firstExample);
+    });
+  }
+
+  // 9) Render inicial: aunque el input esté vacío, SIEMPRE muestra tarjetas/tabla
+  render();
+}
+
+// reglas de conjugación simplificadas
+function toPastSimple(verb) {
+  const found = verbosIrregulares.find((v) => v.infinitivo.toLowerCase() === verb.toLowerCase())
+  if (found) return found.pasado
+  if (verb.endsWith("e")) return verb + "d"
+  if (verb.endsWith("y") && !/[aeiou]y$/.test(verb)) return verb.slice(0, -1) + "ied"
+  return verb + "ed"
+}
+function toPastParticiple(verb) { return toPastSimple(verb) }
+function toGerund(verb) {
+  if (verb === "be") return "being"
+  if (verb.endsWith("ie")) return verb.slice(0, -2) + "ying"
+  if (verb.endsWith("e") && verb.length > 1 && !verb.endsWith("ee")) return verb.slice(0, -1) + "ing"
+  if (/[b-df-hj-np-tv-z][aeiou][b-df-hj-np-tv-z]$/.test(verb) && verb.length <= 4) return verb + verb.slice(-1) + "ing"
+  return verb + "ing"
+}
+function toThirdPerson(verb) {
+  if (verb === "be") return "is"
+  if (verb.endsWith("y") && !/[aeiou]y$/.test(verb)) return verb.slice(0, -1) + "ies"
+  if (/(s|sh|ch|x|z|o)$/.test(verb)) return verb + "es"
+  return verb + "s"
+}
+function conjugateAll(verb) {
+  return { base: verb, third: toThirdPerson(verb), past: toPastSimple(verb), pastPart: toPastParticiple(verb), gerund: toGerund(verb) }
+}
+
+// Nuevas plantillas de ejemplo con placeholders {subject} y tokens {base}/{third}/{past}/{pastPart}/{gerund}
+const TENSES = [
+  { name: "Present Simple", structure: "Subject + base verb (add -s for he/she/it)", templates: ["{subject} {verb}", "{subject} {verb} the task"] },
+  { name: "Present Continuous", structure: "Subject + am/is/are + verb-ing", templates: ["{subject} is {gerund}", "{subject} are {gerund}"] },
+  { name: "Present Perfect", structure: "Subject + have/has + past participle", templates: ["{subject} have {pastPart}", "{subject} has {pastPart}"] },
+  { name: "Present Perfect Continuous", structure: "Subject + have/has been + verb-ing", templates: ["{subject} have been {gerund}"] },
+  { name: "Past Simple", structure: "Subject + past simple", templates: ["{subject} {past}"] },
+  { name: "Past Continuous", structure: "Subject + was/were + verb-ing", templates: ["{subject} was {gerund}"] },
+  { name: "Past Perfect", structure: "Subject + had + past participle", templates: ["{subject} had {pastPart}"] },
+  { name: "Future Simple", structure: "Subject + will + base verb", templates: ["{subject} will {base}"] },
+  { name: "Future Continuous", structure: "Subject + will be + verb-ing", templates: ["{subject} will be {gerund}"] },
+  { name: "Future Perfect", structure: "Subject + will have + past participle", templates: ["{subject} will have {pastPart}"] },
+]
+
+// Genera una cadena de ejemplo para una plantilla dada
+function generateExampleText(tense, forms, subject) {
+  const tpl = (tense.templates && tense.templates[0]) || "{subject} {base}"
+  // pick the template that best fits subject (simple heuristic)
+  let t = tpl
+  // Replace tokens
+  t = t.replace(/{subject}/g, subject)
+  t = t.replace(/{base}/g, forms.base)
+  t = t.replace(/{third}/g, forms.third)
+  t = t.replace(/{past}/g, forms.past)
+  t = t.replace(/{pastPart}/g, forms.pastPart)
+  t = t.replace(/{gerund}/g, forms.gerund)
+  // small fixes for agreement: if subject is He/She/It and template uses {base}, replace with third
+  if (/^(He|She|It)$/i.test(subject) && t.includes(forms.base) && !t.includes(forms.third)) {
+    t = t.replace(forms.base, forms.third)
+  }
+  return t
+}
+
+// Render en tarjetas y en tabla (según viewMode)
+function renderTensesView(verb, subject, viewMode = "cards") {
+  const forms = conjugateAll(verb)
+  const cardsWrap = document.getElementById("tenses-cards")
+  const tbody = document.getElementById("tenses-table-body")
+  if (cardsWrap) cardsWrap.innerHTML = ""
+  if (tbody) tbody.innerHTML = ""
+
+  TENSES.forEach((t) => {
+    const examples = t.templates.map((tpl) => {
+      return tpl.replace(/{subject}/g, subject)
+        .replace(/{base}/g, forms.base)
+        .replace(/{third}/g, forms.third)
+        .replace(/{past}/g, forms.past)
+        .replace(/{pastPart}/g, forms.pastPart)
+        .replace(/{gerund}/g, forms.gerund)
+    }).map((s) => {
+      // agreement tweak
+      if (/^(He|She|It)$/i.test(subject) && s.includes(forms.base) && !s.includes(forms.third)) {
+        return s.replace(forms.base, forms.third)
+      }
+      return s
+    })
+
+    // tarjetas
+    if (cardsWrap && viewMode === "cards") {
+      const card = document.createElement("article")
+      card.className = "tenses-card"
+      const h = document.createElement("h4")
+      h.textContent = t.name
+      const st = document.createElement("div")
+      st.className = "structure"
+      st.textContent = t.structure
+      const ex = document.createElement("div")
+      ex.className = "examples"
+      ex.innerHTML = examples.map((e) => `<div>• ${e}</div>`).join("")
+
+      const actions = document.createElement("div")
+      actions.className = "card-actions"
+      const copyBtn = document.createElement("button")
+      copyBtn.className = "icon-btn"
+      copyBtn.textContent = "Copiar"
+      copyBtn.addEventListener("click", () => copyTextToClipboard(examples.join("\n")))
+
+      const speakBtn = document.createElement("button")
+      speakBtn.className = "icon-btn"
+      speakBtn.textContent = "🔊"
+      speakBtn.title = "Escuchar ejemplo"
+      speakBtn.addEventListener("click", () => pronunciar(examples[0]))
+
+      actions.appendChild(copyBtn)
+      actions.appendChild(speakBtn)
+
+      card.appendChild(h)
+      card.appendChild(st)
+      card.appendChild(ex)
+      card.appendChild(actions)
+
+      cardsWrap.appendChild(card)
+    }
+
+    // tabla (si está visible o se pide)
+    if (tbody) {
+      const tr = document.createElement("tr")
+      const tdName = document.createElement("td")
+      const tdStruct = document.createElement("td")
+      const tdExample = document.createElement("td")
+
+      tdName.textContent = t.name
+      tdStruct.innerHTML = `<div class="structure">${t.structure}</div>`
+      tdExample.innerHTML = `<div class="examples">${examples.map((e) => `<div>• ${e}</div>`).join("")}</div>`
+
+      tr.appendChild(tdName)
+      tr.appendChild(tdStruct)
+      tr.appendChild(tdExample)
+      tbody.appendChild(tr)
+    }
+  })
+}
+
+// Copiar texto al portapapeles
+function copyTextToClipboard(text) {
+  if (!navigator.clipboard) {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    document.body.appendChild(ta)
+    ta.select()
+    try { document.execCommand('copy') } catch (e) {}
+    ta.remove()
+    mostrarNotificacion('Copiado al portapapeles', 'success')
+    return
+  }
+  navigator.clipboard.writeText(text).then(() => mostrarNotificacion('Copiado al portapapeles', 'success'))
+}
+
+function copyAllExamples(verb, subject) {
+  const forms = conjugateAll(verb)
+  const lines = TENSES.map((t) => {
+    const ex = generateExampleText(t, forms, subject)
+    return `${t.name}: ${ex}`
+  })
+  copyTextToClipboard(lines.join('\n'))
+}
+
+// Iniciar módulo de tiempos al cargar el DOM
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    initTenses()
+  } catch (e) {
+    console.error("Error inicializando tenses module:", e)
+  }
+})
+
+// -------------------- End Tenses module --------------------
+
 function mostrarTodosLosTerminos() {
   const nuevosTerminos = [
     {
