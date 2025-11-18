@@ -1,0 +1,160 @@
+  const link = document.createElement("a")
+  link.href = url
+  link.download = nombreArchivo
+  link.click()
+  URL.revokeObjectURL(url)
+
+  mostrarNotificacion(`Glosario exportado como ${formato.toUpperCase()}`, "success")
+}
+
+const verbosIrregulares = [
+  { infinitivo: "arise", pasado: "arose" },
+  { infinitivo: "awake", pasado: "awoke" },
+  { infinitivo: "be", pasado: "was / were" },
+  { infinitivo: "bear", pasado: "bore" },
+  { infinitivo: "beat", pasado: "beat" },
+  { infinitivo: "become", pasado: "became" },
+  { infinitivo: "begin", pasado: "began" },
+  { infinitivo: "bend", pasado: "bent" },
+  { infinitivo: "bet", pasado: "bet" },
+  { infinitivo: "bid", pasado: "bid" },
+  { infinitivo: "bite", pasado: "bit" },
+  { infinitivo: "bleed", pasado: "bled" },
+  { infinitivo: "blow", pasado: "blew" },
+  { infinitivo: "break", pasado: "broke" },
+  { infinitivo: "bring", pasado: "brought" },
+  { infinitivo: "broadcast", pasado: "broadcast" },
+  { infinitivo: "build", pasado: "built" },
+  { infinitivo: "burn", pasado: "burnt / burned" },
+  { infinitivo: "burst", pasado: "burst" },
+  { infinitivo: "buy", pasado: "bought" },
+  { infinitivo: "catch", pasado: "caught" },
+  { infinitivo: "choose", pasado: "chose" },
+  { infinitivo: "come", pasado: "came" },
+  { infinitivo: "cost", pasado: "cost" },
+  { infinitivo: "creep", pasado: "crept" },
+  { infinitivo: "cut", pasado: "cut" },
+  { infinitivo: "deal", pasado: "dealt" },
+  { infinitivo: "dig", pasado: "dug" },
+  { infinitivo: "do", pasado: "did" },
+  { infinitivo: "draw", pasado: "drew" },
+  { infinitivo: "dream", pasado: "dreamt / dreamed" },
+  { infinitivo: "drink", pasado: "drank" },
+  { infinitivo: "drive", pasado: "drove" },
+  { infinitivo: "eat", pasado: "ate" },
+  { infinitivo: "fall", pasado: "fell" },
+  { infinitivo: "feed", pasado: "fed" },
+  { infinitivo: "feel", pasado: "felt" },
+  { infinitivo: "fight", pasado: "fought" },
+  { infinitivo: "find", pasado: "found" },
+  { infinitivo: "fly", pasado: "flew" },
+  { infinitivo: "forbid", pasado: "forbade" },
+  { infinitivo: "forget", pasado: "forgot" },
+  { infinitivo: "forgive", pasado: "forgave" },
+  { infinitivo: "freeze", pasado: "froze" },
+  { infinitivo: "get", pasado: "got" },
+  { infinitivo: "give", pasado: "gave" },
+  { infinitivo: "go", pasado: "went" },
+  { infinitivo: "grow", pasado: "grew" },
+  { infinitivo: "hang", pasado: "hung" },
+  { infinitivo: "have", pasado: "had" },
+  { infinitivo: "hear", pasado: "heard" },
+  { infinitivo: "hide", pasado: "hid" },
+  { infinitivo: "hit", pasado: "hit" },
+  { infinitivo: "hold", pasado: "held" },
+  { infinitivo: "hurt", pasado: "hurt" },
+  { infinitivo: "keep", pasado: "kept" },
+  { infinitivo: "kneel", pasado: "knelt / kneeled" },
+  { infinitivo: "know", pasado: "knew" },
+  { infinitivo: "lay", pasado: "laid" },
+  { infinitivo: "lead", pasado: "led" },
+  { infinitivo: "leave", pasado: "left" },
+  { infinitivo: "lend", pasado: "lent" },
+  { infinitivo: "let", pasado: "let" },
+  { infinitivo: "lie", pasado: "lay" },
+  { infinitivo: "light", pasado: "lit / lighted" },
+  { infinitivo: "lose", pasado: "lost" },
+  { infinitivo: "make", pasado: "made" },
+  { infinitivo: "mean", pasado: "meant" },
+  { infinitivo: "meet", pasado: "met" },
+  { infinitivo: "pay", pasado: "paid" },
+  { infinitivo: "put", pasado: "put" },
+  { infinitivo: "read", pasado: "read" },
+  { infinitivo: "ride", pasado: "rode" },
+  { infinitivo: "ring", pasado: "rang" },
+  { infinitivo: "rise", pasado: "rose" },
+  { infinitivo: "run", pasado: "ran" },
+  { infinitivo: "say", pasado: "said" },
+  { infinitivo: "see", pasado: "saw" },
+  { infinitivo: "seek", pasado: "sought" },
+  { infinitivo: "sell", pasado: "sold" },
+  { infinitivo: "send", pasado: "sent" },
+  { infinitivo: "set", pasado: "set" },
+  { infinitivo: "shake", pasado: "shook" },
+  { infinitivo: "shine", pasado: "shone" },
+  { infinitivo: "shoot", pasado: "shot" },
+  { infinitivo: "show", pasado: "showed" },
+  { infinitivo: "shut", pasado: "shut" },
+  { infinitivo: "sing", pasado: "sang" },
+  { infinitivo: "sink", pasado: "sank" },
+  { infinitivo: "sit", pasado: "sat" },
+  { infinitivo: "sleep", pasado: "slept" },
+  { infinitivo: "slide", pasado: "slid" },
+  { infinitivo: "speak", pasado: "spoke" },
+  { infinitivo: "spend", pasado: "spent" },
+  { infinitivo: "spill", pasado: "spilt / spilled" },
+  { infinitivo: "spin", pasado: "spun" },
+  { infinitivo: "spit", pasado: "spat" },
+  { infinitivo: "split", pasado: "split" },
+  { infinitivo: "spread", pasado: "spread" },
+  { infinitivo: "stand", pasado: "stood" },
+  { infinitivo: "steal", pasado: "stole" },
+  { infinitivo: "stick", pasado: "stuck" },
+  { infinitivo: "sting", pasado: "stung" },
+  { infinitivo: "stink", pasado: "stank" },
+  { infinitivo: "strike", pasado: "struck" },
+  { infinitivo: "swear", pasado: "swore" },
+  { infinitivo: "sweep", pasado: "swept" },
+  { infinitivo: "swim", pasado: "swam" },
+  { infinitivo: "swing", pasado: "swung" },
+  { infinitivo: "take", pasado: "took" },
+  { infinitivo: "teach", pasado: "taught" },
+  { infinitivo: "tear", pasado: "tore" },
+  { infinitivo: "tell", pasado: "told" },
+  { infinitivo: "think", pasado: "thought" },
+  { infinitivo: "throw", pasado: "threw" },
+  { infinitivo: "understand", pasado: "understood" },
+  { infinitivo: "wake", pasado: "woke" },
+  { infinitivo: "wear", pasado: "wore" },
+  { infinitivo: "win", pasado: "won" },
+  { infinitivo: "write", pasado: "wrote" },
+]
+
+function renderizarVerbos() {
+  const tbody = document.getElementById("verbs-table-body")
+  if (!tbody) return
+
+  tbody.innerHTML = ""
+  verbosIrregulares.forEach((v) => {
+    const tr = document.createElement("tr")
+    tr.innerHTML = `<td>${v.infinitivo}</td><td>${v.pasado}</td>`
+    tbody.appendChild(tr)
+  })
+}
+
+// Agregar función de búsqueda para verbos irregulares
+function buscarVerbosIrregulares() {
+  const input = document.getElementById("verbs-search-input")
+  const tbody = document.getElementById("verbs-table-body")
+  const contador = document.getElementById("verbs-count")
+
+  if (!input || !tbody) return
+
+  const termino = input.value.trim().toLowerCase()
+
+  // Limpiar tabla
+  tbody.innerHTML = ""
+
+  // Filtrar verbos
+  const verbosEncontrados = verbosIrregulares.filter(
+    (v) => v.infinitivo.toLowerCase().includes(termino) || v.pasado.toLowerCase().includes(termino),

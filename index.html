@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -23,10 +23,10 @@
     <nav>
         <ul>
             <li><a href="#" id="search-button"><i class="fas fa-search"></i></a></li>
-            <li><a href="#search" class="active" data-tab="search">Terminos</a></li>
+            <li><a href="#search" class="active" data-tab="search">Términos</a></li>
             <li><a href="#favorites" data-tab="favorites">Favoritos</a></li>
             <li><a href="#add" data-tab="add">Añadir Término</a></li>
-            <li><a href="#stats" data-tab="stats">Estadísticas</a></li>
+            <li><a href="#stats" data-tab="stats">Estadisticas</a></li>
             <li><a href="#irregular-verbs" data-tab="irregular-verbs">Verbos Irregulares</a></li>
             <li><a href="#tenses" data-tab="tenses">Tiempos</a></li>
             <li><a href="#settings" data-tab="settings">Configuración</a></li>
@@ -139,7 +139,7 @@
             <ul id="favorites-list" class="favorites-list"></ul>
             <div id="no-favorites" class="no-data-message">
                 <p>No tienes términos favoritos guardados.</p>
-                <p>Marca términos como favoritos haciendo clic en el ícono ⭐ al buscar términos.</p>
+                <p>Marca términos como favoritos haciendo clic en el Ícono ? al buscar términos.</p>
             </div>
         </section>
 
@@ -273,6 +273,7 @@
                     <tr>
                         <th>Infinitivo</th>
                         <th>Pasado Simple</th>
+                        <th>Participio Pasado</th>
                     </tr>
                 </thead>
                 <tbody id="verbs-table-body">
@@ -288,11 +289,40 @@
             <div class="settings-group">
                 <h3>Apariencia</h3>
                 <div class="setting-item">
+                    <label for="theme-preset">Colores del glosario:</label>
+                    <div class="theme-preset-controls">
+                        <select id="theme-preset">
+                            <option value="default">Predeterminado</option>
+                            <option value="forest">Bosque</option>
+                            <option value="ocean">Océano</option>
+                            <option value="sunset">Atardecer</option>
+                            <option value="graphite">Grafito</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                        <button id="reset-theme-colors" class="small-button" type="button">Restablecer</button>
+                    </div>
+                </div>
+                <div class="setting-item" id="custom-theme-controls" style="display: none;">
+                    <label>Colores personalizados:</label>
+                    <div class="color-pickers">
+                        <label class="color-picker">
+                            <span>Primario</span>
+                            <input type="color" id="color-primary" value="#667eea">
+                        </label>
+                        <label class="color-picker">
+                            <span>Detalle</span>
+                            <input type="color" id="color-accent" value="#f59e0b">
+                        </label>
+                        <button id="save-custom-theme" class="small-button" type="button">Guardar colores</button>
+                    </div>
+                    <small class="setting-hint">Se guardan solo en este dispositivo.</small>
+                </div>
+                <div class="setting-item">
                     <label for="theme-toggle-setting">Tema oscuro:</label>
                     <div class="theme-toggle" data-tooltip="Cambiar tema">
                         <button id="theme-switch-setting" aria-label="Cambiar entre tema claro y oscuro">
-                            <span class="icon-light">☀️</span>
-                            <span class="icon-dark">🌙</span>
+                            <span class="icon-light"><i class="fas fa-star"></i>?</span>
+                            <span class="icon-dark">?YOT</span>
                         </button>
                     </div>
                 </div>
@@ -337,44 +367,41 @@
                 <div class="about-info">
                     <p><strong>Glosario Técnico de Inglés</strong></p>
                     <p>Versión 2.0</p>
-                    <p>Desarrollado con ❤️ para ayudarte a aprender terminología técnica en inglés</p>
+                    <p>Desarrollado con ?? para ayudarte a aprender terminología técnica en inglés</p>
                 </div>
             </div>
         </section>
 
         <div id="search-modal" class="search-modal hidden">
+            <div class="search-modal-overlay"></div>
             <div class="search-modal-content">
-                <div class="search-header">
-                <h2>Buscar término</h2>
-                <button id="close-search-modal" class="small-button">✕</button>
+                <!-- Barra de búsqueda superior -->
+                <div class="search-bar-container">
+                    <div class="search-bar-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input id="search-input-modal" class="search-input-modal" type="text" placeholder="Buscar términos, verbos irregulares, tiempos verbales..." autocomplete="off">
+                        <button id="clear-search-modal" class="clear-search-btn" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button id="close-search-modal" class="close-search-btn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <input id="search-input" class="search-input" type="text" placeholder="Buscar término...">
 
-                <div class="search-container">
-                    <div class="search-filters">
-                        <select id="category-filter" aria-label="Filtrar por categoría">
-                            <option value="">Todas las categorías</option>
-                            <option value="programming">Programación</option>
-                            <option value="networking">Redes</option>
-                            <option value="security">Seguridad</option>
-                            <option value="hardware">Hardware</option>
-                            <option value="software">Software</option>
-                        </select>
-                        <div class="search-options">
-                            <label><input type="checkbox" id="exact-match"> Coincidencia exacta</label>
-                            <label><input type="checkbox" id="search-description"> Buscar en descripciones</label>
-                        </div>
+                <!-- Área de contenido: sugerencias o resultados -->
+                <div class="search-content-area">
+                    <!-- Área de sugerencias (se muestra cuando no hay resultado seleccionado) -->
+                    <div id="search-suggestions" class="search-suggestions">
+                        <!-- Se llenará dinámicamente con sugerencias -->
+                    </div>
 
-                        <div class="search-advanced">
-                            <label>Ordenar por:
-                                <select id="sort-filter">
-                                <option value="alpha">Alfabético</option>
-                                <option value="category">Categoría</option>
-                                <option value="favorites">Favoritos primero</option>
-                                </select>
-                            </label>
-                            <label><input type="checkbox" id="only-favorites"> Solo favoritos</label>
-                        </div>
+                    <!-- Área de resultado seleccionado (se muestra cuando hay un resultado) -->
+                    <div id="search-result-view" class="search-result-view hidden">
+                        <button id="back-to-suggestions" class="back-button">
+                            <i class="fas fa-arrow-left"></i> Volver a búsqueda
+                        </button>
+                        <div id="search-result-content"></div>
                     </div>
                 </div>
             </div>
@@ -389,8 +416,8 @@
                 <div class="term-header">
                     <h2 id="modal-term"></h2>
                     <div class="term-actions">
-                        <button id="pronounce-term" class="icon-button" aria-label="Pronunciar término">🔊</button>
-                        <button id="toggle-favorite" class="icon-button" aria-label="Marcar como favorito">☆</button>
+                        <button id="pronounce-term" class="icon-button" aria-label="Pronunciar término"><i class="fas fa-volume-up"></i></button>
+                        <button id="toggle-favorite" class="icon-button" aria-label="Marcar como favorito"><i class="fas fa-star"></i></button>
                     </div>
                 </div>
                 <div class="term-pronunciation">
@@ -433,7 +460,7 @@
     </div>
 
     <!-- Notificaciones -->
-    <div id="notification" class="notification"></div>
+    <div id="notification-container" class="notification-container" aria-live="polite"></div>
 
     <script src="script.js"></script>
     <script>
@@ -446,3 +473,5 @@
     </script>
 </body>
 </html>
+
+

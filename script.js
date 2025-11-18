@@ -1,9 +1,21 @@
-// Variables globales para configuración
+﻿// Variables globales para configuración
 let currentSettings = {
   fontSize: 100,
   speechRate: 1,
   selectedVoice: null,
   voices: [],
+  themePreset: "default",
+  customPrimary: "#667eea",
+  customAccent: "#f59e0b",
+}
+
+const themePalettes = {
+  // Todas las paletas siguen la misma tonalidad (mismo contraste) pero con familias de color distintas
+  default: { primary: "#5c5eff", accent: "#ff6ec7", secondary: "#2dd4bf" }, // morados vibrantes
+  forest: { primary: "#1fbf8f", accent: "#0fa76f", secondary: "#42ffd1" },  // verdes
+  ocean: { primary: "#1f9dff", accent: "#00c2ff", secondary: "#6ef1ff" },   // azules
+  sunset: { primary: "#ff7a59", accent: "#ff4f81", secondary: "#ffc75f" },  // cálidos
+  graphite: { primary: "#7f8ba3", accent: "#b7c2d6", secondary: "#dfe6f0" }, // grises luminosos
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -12,15 +24,20 @@ document.addEventListener("DOMContentLoaded", () => {
   inicializarConfiguracion()
   cargarVoces()
 
-  // Búsqueda en tiempo real
-  document.getElementById("search-input").addEventListener("input", buscarEnTiempoReal)
+  // La búsqueda en tiempo real ahora se maneja en inicializarBusquedaGoogle()
 
   // Manejadores del botón de tema (ambos botones)
   document.getElementById("theme-switch").addEventListener("click", cambiarTema)
   document.getElementById("theme-switch-setting").addEventListener("click", cambiarTema)
+  const themePresetSelect = document.getElementById("theme-preset")
+  if (themePresetSelect) { themePresetSelect.addEventListener("change", manejarCambioPreset) }
+  const saveCustomBtn = document.getElementById("save-custom-theme")
+  if (saveCustomBtn) { saveCustomBtn.addEventListener("click", guardarTemaPersonalizado) }
+  const resetThemeBtn = document.getElementById("reset-theme-colors")
+  if (resetThemeBtn) { resetThemeBtn.addEventListener("click", restablecerTema) }
 
   // Manejadores de configuración
-  document.getElementById("font-size").addEventListener("input", cambiarTamañoFuente)
+  document.getElementById("font-size").addEventListener("input", cambiarTamanoFuente)
   document.getElementById("speech-rate").addEventListener("input", cambiarVelocidadVoz)
   document.getElementById("voice-select").addEventListener("change", cambiarVoz)
   document.getElementById("test-voice").addEventListener("click", probarVoz)
@@ -53,55 +70,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   actualizarEstadisticas()
 
-  document.getElementById("category-filter").addEventListener("change", buscarEnTiempoReal);
-  document.getElementById("exact-match").addEventListener("change", buscarEnTiempoReal);
-  document.getElementById("search-description").addEventListener("change", buscarEnTiempoReal);
-  document.getElementById("only-favorites").addEventListener("change", buscarEnTiempoReal);
-  document.getElementById("sort-filter").addEventListener("change", buscarEnTiempoReal);
-
-
-
-    // Mostrar el modal al tocar la lupa
-  document.getElementById("search-button").addEventListener("click", (e) => {
-    e.preventDefault()
-    document.getElementById("search-modal").classList.add("visible")
-    document.getElementById("search-modal").classList.remove("hidden")
-    document.getElementById("search-input").focus()
-  })
-
-  // Cerrar el modal
-  document.getElementById("close-search-modal").addEventListener("click", () => {
-    document.getElementById("search-modal").classList.remove("visible")
-    document.getElementById("search-modal").classList.add("hidden")
-  })
-
-
-
-
-
-
-  document.getElementById("search-button").addEventListener("click", (e) => {
-    e.preventDefault()
-    const modal = document.getElementById("search-modal")
-    modal.classList.remove("hidden")
-    modal.classList.add("visible")
-    document.getElementById("search-input").focus()
-  })
-
-  document.getElementById("close-search-modal").addEventListener("click", () => {
-    const modal = document.getElementById("search-modal")
-    modal.classList.remove("visible")
-    modal.classList.add("hidden")
-  })
-
-  document.getElementById("search-input").addEventListener("input", buscarEnTiempoReal)
-  document.getElementById("category-filter").addEventListener("change", buscarEnTiempoReal)
-  document.getElementById("sort-filter").addEventListener("change", buscarEnTiempoReal)
-  document.getElementById("only-favorites").addEventListener("change", buscarEnTiempoReal)
-
+  // Inicializar búsqueda tipo Google
+  inicializarBusquedaGoogle()
 })
 
-// -------------------- Tenses module --------------------
 // Inicializa la sección de tiempos verbales con UI mejorada
 // -------------------- Tenses module (fix "siempre mostrar") --------------------
 function initTenses() {
@@ -200,7 +172,7 @@ function initTenses() {
   if (verbInput) {
     // mientras escribe, no cortamos el render: que SIEMPRE haya algo en pantalla
     verbInput.addEventListener("input", () => {
-      // no exigimos match — render con getActiveVerb() que ya cae al default si no coincide
+      // no exigimos match; render con getActiveVerb() que ya cae al default si no coincide
       render();
     });
     verbInput.addEventListener("change", render);
@@ -273,7 +245,11 @@ function toPastSimple(verb) {
   if (verb.endsWith("y") && !/[aeiou]y$/.test(verb)) return verb.slice(0, -1) + "ied"
   return verb + "ed"
 }
-function toPastParticiple(verb) { return toPastSimple(verb) }
+function toPastParticiple(verb) {
+  const found = verbosIrregulares.find((v) => v.infinitivo.toLowerCase() === verb.toLowerCase())
+  if (found) return found.participio || found.pasado
+  return toPastSimple(verb)
+}
 function toGerund(verb) {
   if (verb === "be") return "being"
   if (verb.endsWith("ie")) return verb.slice(0, -2) + "ying"
@@ -359,7 +335,7 @@ function renderTensesView(verb, subject, viewMode = "cards") {
       st.textContent = t.structure
       const ex = document.createElement("div")
       ex.className = "examples"
-      ex.innerHTML = examples.map((e) => `<div>• ${e}</div>`).join("")
+      ex.innerHTML = examples.map((e) => `<div>- ${e}</div>`).join("")
 
       const actions = document.createElement("div")
       actions.className = "card-actions"
@@ -370,7 +346,7 @@ function renderTensesView(verb, subject, viewMode = "cards") {
 
       const speakBtn = document.createElement("button")
       speakBtn.className = "icon-btn"
-      speakBtn.textContent = "🔊"
+      speakBtn.textContent = "Escuchar"
       speakBtn.title = "Escuchar ejemplo"
       speakBtn.addEventListener("click", () => pronunciar(examples[0]))
 
@@ -394,7 +370,7 @@ function renderTensesView(verb, subject, viewMode = "cards") {
 
       tdName.textContent = t.name
       tdStruct.innerHTML = `<div class="structure">${t.structure}</div>`
-      tdExample.innerHTML = `<div class="examples">${examples.map((e) => `<div>• ${e}</div>`).join("")}</div>`
+      tdExample.innerHTML = `<div class="examples">${examples.map((e) => `<div>- ${e}</div>`).join("")}</div>`
 
       tr.appendChild(tdName)
       tr.appendChild(tdStruct)
@@ -443,7 +419,7 @@ function mostrarTodosLosTerminos() {
   const nuevosTerminos = [
     {
       term: "however",
-      pronunciation: "hau·we·r",
+      pronunciation: "",
       translation: "sin embargo",
       definition: "Conjunción usada para contrastar ideas.",
       examples: ["I wanted to go; however, it rained."],
@@ -451,7 +427,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "hold",
-      pronunciation: "həʊld",
+      pronunciation: "",
       translation: "mantener",
       definition: "Sujetar o mantener algo en posición.",
       examples: ["Please hold this for a moment."],
@@ -459,7 +435,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "between",
-      pronunciation: "bɪˈtwiːn",
+      pronunciation: "",
       translation: "entre",
       definition: "En el espacio o intervalo que separa dos cosas.",
       examples: ["The keys are between the books."],
@@ -467,7 +443,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "breadcrumbs",
-      pronunciation: "ˈbrɛdˌkrʌmz",
+      pronunciation: "",
       translation: "migas de pan",
       definition: "Atajos o enlaces de navegación para volver a una sección anterior.",
       examples: ["Click the breadcrumbs to go back to the homepage."],
@@ -475,7 +451,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "up to",
-      pronunciation: "ʌp tuː",
+      pronunciation: "",
       translation: "hasta (en lugares)",
       definition: "Indica el límite superior de algo.",
       examples: ["Walk up to the door."],
@@ -483,7 +459,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "dropdown",
-      pronunciation: "drɒp.daʊn",
+      pronunciation: "",
       translation: "menú desplegable",
       definition: "Elemento de interfaz que muestra opciones al hacer clic.",
       examples: ["Choose a value from the dropdown."],
@@ -491,7 +467,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "siblings",
-      pronunciation: "ˈsɪblɪŋz",
+      pronunciation: "",
       translation: "etiqueta hermana de un mismo padre",
       definition: "Etiquetas que comparten el mismo elemento padre.",
       examples: ["Use .siblings() to select them."],
@@ -499,7 +475,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "path",
-      pronunciation: "pæθ",
+      pronunciation: "",
       translation: "camino",
       definition: "Ruta que indica la ubicación de un archivo o recurso.",
       examples: ["The path to the file is C:/docs/file.txt."],
@@ -507,7 +483,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "below",
-      pronunciation: "bɪˈləʊ",
+      pronunciation: "",
       translation: "debajo",
       definition: "En una posición más baja.",
       examples: ["Scroll down to see what's below."],
@@ -515,7 +491,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "toggle",
-      pronunciation: "ˈtɒɡəl",
+      pronunciation: "",
       translation: "alternar",
       definition: "Cambiar entre dos estados.",
       examples: ["Click the button to toggle the menu."],
@@ -523,7 +499,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "both",
-      pronunciation: "bəʊθ",
+      pronunciation: "",
       translation: "ambos",
       definition: "Dos elementos a la vez.",
       examples: ["Both files are corrupted."],
@@ -531,7 +507,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "shortcuts",
-      pronunciation: "ˈʃɔːt.kʌts",
+      pronunciation: "/shortcuts/",
       translation: "atajos",
       definition: "Combinaciones de teclas para ejecutar acciones rápidamente.",
       examples: ["Ctrl+C is a common shortcut."],
@@ -539,7 +515,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "matching",
-      pronunciation: "ˈmætʃɪŋ",
+      pronunciation: "",
       translation: "coincidir",
       definition: "Cuando dos elementos tienen características iguales.",
       examples: ["Use matching brackets."],
@@ -547,7 +523,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "hover over",
-      pronunciation: "ˈhʌvər ˈəʊvər",
+      pronunciation: "",
       translation: "posicionarse sobre",
       definition: "Mover el cursor sobre un elemento sin hacer clic.",
       examples: ["Hover over the image to zoom."],
@@ -555,7 +531,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "keybinding",
-      pronunciation: "kiːˌbaɪndɪŋ",
+      pronunciation: "",
       translation: "vinculación de teclas",
       definition: "Asignación de una tecla o combinación a una acción.",
       examples: ["You can customize keybindings."],
@@ -563,7 +539,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "peek",
-      pronunciation: "piːk",
+      pronunciation: "",
       translation: "pispiar / echar un vistazo",
       definition: "Ver rápidamente algo.",
       examples: ["Let's peek at the result."],
@@ -571,7 +547,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "embed",
-      pronunciation: "ɪmˈbɛd",
+      pronunciation: "",
       translation: "incluir",
       definition: "Insertar contenido dentro de otro.",
       examples: ["Embed the video on the page."],
@@ -579,7 +555,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "bracket",
-      pronunciation: "ˈbrækɪt",
+      pronunciation: "",
       translation: "corchete",
       definition: "Símbolo utilizado en programación o escritura.",
       examples: ["Use square brackets in arrays."],
@@ -587,7 +563,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "bracket matching",
-      pronunciation: "ˈbrækɪt ˈmætʃɪŋ",
+      pronunciation: "",
       translation: "corchetes coincidentes",
       definition: "Resaltar o verificar pares de corchetes.",
       examples: ["The editor has bracket matching."],
@@ -595,7 +571,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "as soon as",
-      pronunciation: "æz suːn æz",
+      pronunciation: "",
       translation: "tan pronto como",
       definition: "Indica inmediatez de acción.",
       examples: ["I'll call you as soon as I arrive."],
@@ -603,7 +579,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "throughout",
-      pronunciation: "θruːˈaʊt",
+      pronunciation: "",
       translation: "a lo largo de",
       definition: "Durante todo el periodo o lugar.",
       examples: ["Throughout the day."],
@@ -611,7 +587,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "invoke",
-      pronunciation: "ɪnˈvəʊk",
+      pronunciation: "",
       translation: "usar",
       definition: "Llamar a una función o comando.",
       examples: ["Invoke the method directly."],
@@ -619,7 +595,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "across",
-      pronunciation: "əˈkrɒs",
+      pronunciation: "",
       translation: "a lo largo de",
       definition: "De un lado a otro.",
       examples: ["Spread across regions."],
@@ -627,7 +603,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "the loop",
-      pronunciation: "ðə luːp",
+      pronunciation: "",
       translation: "el bucle",
       definition: "Secuencia que se repite en programación.",
       examples: ["Inside the loop, add 1."],
@@ -635,7 +611,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "fix",
-      pronunciation: "fɪks",
+      pronunciation: "",
       translation: "arreglar/reparar",
       definition: "Corregir un error.",
       examples: ["Fix the bug in the code."],
@@ -643,7 +619,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "inlay hints",
-      pronunciation: "ˈɪn.leɪ hɪnts",
+      pronunciation: "",
       translation: "pistas incrustadas",
       definition: "Sugerencias visuales dentro del código.",
       examples: ["Enable inlay hints in the editor."],
@@ -651,7 +627,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "brings up",
-      pronunciation: "brɪŋz ʌp",
+      pronunciation: "",
       translation: "trae",
       definition: "Mostrar o presentar algo.",
       examples: ["This brings up a menu."],
@@ -659,7 +635,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "printout",
-      pronunciation: "ˈprɪnt.aʊt",
+      pronunciation: "",
       translation: "copia impresa",
       definition: "Documento físico impreso.",
       examples: ["The report is in the printout."],
@@ -667,7 +643,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "wipe out",
-      pronunciation: "waɪp aʊt",
+      pronunciation: "",
       translation: "borrar",
       definition: "Eliminar completamente.",
       examples: ["Wipe out all user data."],
@@ -675,7 +651,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "annoying",
-      pronunciation: "əˈnɔɪ.ɪŋ",
+      pronunciation: "/uh-NOY-ing",
       translation: "molesto",
       definition: "Algo que causa molestia.",
       examples: ["That popup is very annoying."],
@@ -683,7 +659,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "hook up",
-      pronunciation: "hʊk ʌp",
+      pronunciation: "",
       translation: "conectar",
       definition: "Conectar un dispositivo o componente.",
       examples: ["Hook up the speakers to the PC."],
@@ -691,7 +667,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "opt in",
-      pronunciation: "ɒpt ɪn",
+      pronunciation: "",
       translation: "optar / decidir",
       definition: "Elegir participar en algo.",
       examples: ["You must opt in to receive emails."],
@@ -699,7 +675,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "wrapper",
-      pronunciation: "ˈræpər",
+      pronunciation: "",
       translation: "encapsulador",
       definition: "Objeto que encapsula otro para agregar funcionalidad.",
       examples: ["Use a wrapper for the API."],
@@ -707,7 +683,7 @@ function mostrarTodosLosTerminos() {
     },
     {
       term: "which",
-      pronunciation: "wɪtʃ",
+      pronunciation: "",
       translation: "el cual / la cual",
       definition: "Pronombre relativo.",
       examples: ["The file, which is large, is safe."],
@@ -803,6 +779,71 @@ function aplicarTema(tema) {
   document.documentElement.setAttribute("data-theme", tema)
 }
 
+// Utilidades de color
+function hexToRgb(hex) {
+  const normalized = hex.startsWith("#") ? hex.slice(1) : hex
+  if (normalized.length !== 6) return null
+  const int = Number.parseInt(normalized, 16)
+  return {
+    r: (int >> 16) & 255,
+    g: (int >> 8) & 255,
+    b: int & 255,
+  }
+}
+
+function componentToHex(v) {
+  const h = v.toString(16)
+  return h.length === 1 ? "0" + h : h
+}
+
+function lightenHex(hex, factor = 0.25) {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return "#ffffff"
+  const mix = {
+    r: Math.round(rgb.r + (255 - rgb.r) * factor),
+    g: Math.round(rgb.g + (255 - rgb.g) * factor),
+    b: Math.round(rgb.b + (255 - rgb.b) * factor),
+  }
+  return `#${componentToHex(mix.r)}${componentToHex(mix.g)}${componentToHex(mix.b)}`
+}
+
+function mixHex(a, b, ratio = 0.5) {
+  const rgbA = hexToRgb(a)
+  const rgbB = hexToRgb(b)
+  if (!rgbA || !rgbB) return a
+  const mix = {
+    r: Math.round(rgbA.r * (1 - ratio) + rgbB.r * ratio),
+    g: Math.round(rgbA.g * (1 - ratio) + rgbB.g * ratio),
+    b: Math.round(rgbA.b * (1 - ratio) + rgbB.b * ratio),
+  }
+  return `#${componentToHex(mix.r)}${componentToHex(mix.g)}${componentToHex(mix.b)}`
+}
+
+function getComplementaryColor(primaryHex, accentHex = null) {
+  const rgb = hexToRgb(primaryHex)
+  if (!rgb) return "#ffffff"
+  const comp = { r: 255 - rgb.r, g: 255 - rgb.g, b: 255 - rgb.b }
+  let complement = `#${componentToHex(comp.r)}${componentToHex(comp.g)}${componentToHex(comp.b)}`
+  // Mezcla ligera con el acento para ganar saturación y luego ilumina para legibilidad
+  if (accentHex) complement = mixHex(complement, accentHex, 0.35)
+  return lightenHex(complement, 0.18)
+}
+
+function aplicarColoresTema(preset = "default", primary = null, accent = null) {
+  const palette = themePalettes[preset] || themePalettes.default
+  const primaryColor = primary || palette.primary
+  const accentColor = accent || palette.accent
+  const secondaryColor = palette.secondary || accentColor
+  const titleColor = getComplementaryColor(primaryColor, accentColor)
+
+  const root = document.documentElement.style
+  root.setProperty("--primary-color", primaryColor)
+  root.setProperty("--secondary-color", secondaryColor)
+  root.setProperty("--accent-color", accentColor)
+  root.setProperty("--primary-gradient", `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)`)
+  root.setProperty("--title-color", titleColor)
+}
+
 // Funciones de configuración
 function inicializarConfiguracion() {
   const configuracionGuardada = localStorage.getItem("configuracion")
@@ -815,16 +856,24 @@ function inicializarConfiguracion() {
   document.getElementById("font-size-value").textContent = currentSettings.fontSize + "%"
   document.getElementById("speech-rate").value = currentSettings.speechRate
   document.getElementById("speech-rate-value").textContent = currentSettings.speechRate + "x"
+  const presetSelect = document.getElementById("theme-preset")
+  if (presetSelect) presetSelect.value = currentSettings.themePreset || "default"
+  const primaryInput = document.getElementById("color-primary")
+  const accentInput = document.getElementById("color-accent")
+  if (primaryInput) primaryInput.value = currentSettings.customPrimary
+  if (accentInput) accentInput.value = currentSettings.customAccent
 
-  // Aplicar tamaño de fuente
+  // Aplicar tamaAo de fuente
   document.documentElement.style.fontSize = currentSettings.fontSize / 100 + "rem"
+  actualizarVisibilidadCustomTheme()
+  aplicarColoresTema(currentSettings.themePreset, currentSettings.customPrimary, currentSettings.customAccent)
 }
 
-function cambiarTamañoFuente(event) {
-  const nuevoTamaño = Number.parseInt(event.target.value)
-  currentSettings.fontSize = nuevoTamaño
-  document.getElementById("font-size-value").textContent = nuevoTamaño + "%"
-  document.documentElement.style.fontSize = nuevoTamaño / 100 + "rem"
+function cambiarTamanoFuente(event) {
+  const nuevoTamano = Number.parseInt(event.target.value)
+  currentSettings.fontSize = nuevoTamano
+  document.getElementById("font-size-value").textContent = nuevoTamano + "%"
+  document.documentElement.style.fontSize = nuevoTamano / 100 + "rem"
   guardarConfiguracion()
 }
 
@@ -884,6 +933,52 @@ function probarVoz() {
   pronunciar(textoEjemplo)
 }
 
+function actualizarVisibilidadCustomTheme() {
+  const presetSelect = document.getElementById("theme-preset")
+  const customControls = document.getElementById("custom-theme-controls")
+  if (!presetSelect || !customControls) return
+  customControls.style.display = presetSelect.value === "custom" ? "block" : "none"
+}
+
+function manejarCambioPreset(event) {
+  const preset = event.target.value
+  currentSettings.themePreset = preset
+  if (preset !== "custom") {
+    aplicarColoresTema(preset)
+    guardarConfiguracion()
+  }
+  actualizarVisibilidadCustomTheme()
+}
+
+function guardarTemaPersonalizado() {
+  const primaryInput = document.getElementById("color-primary")
+  const accentInput = document.getElementById("color-accent")
+  if (!primaryInput || !accentInput) return
+  currentSettings.themePreset = "custom"
+  currentSettings.customPrimary = primaryInput.value
+  currentSettings.customAccent = accentInput.value
+  aplicarColoresTema("custom", currentSettings.customPrimary, currentSettings.customAccent)
+  guardarConfiguracion()
+  actualizarVisibilidadCustomTheme()
+  mostrarNotificacion("Tema personalizado guardado", "success", { tabId: "settings" })
+}
+
+function restablecerTema() {
+  currentSettings.themePreset = "default"
+  currentSettings.customPrimary = themePalettes.default.primary
+  currentSettings.customAccent = themePalettes.default.accent
+  const presetSelect = document.getElementById("theme-preset")
+  if (presetSelect) presetSelect.value = "default"
+  const primaryInput = document.getElementById("color-primary")
+  const accentInput = document.getElementById("color-accent")
+  if (primaryInput) primaryInput.value = currentSettings.customPrimary
+  if (accentInput) accentInput.value = currentSettings.customAccent
+  aplicarColoresTema("default")
+  guardarConfiguracion()
+  actualizarVisibilidadCustomTheme()
+  mostrarNotificacion("Colores restablecidos", "info", { tabId: "settings" })
+}
+
 function guardarConfiguracion() {
   localStorage.setItem("configuracion", JSON.stringify(currentSettings))
 }
@@ -906,7 +1001,7 @@ function crearCopiaSeguridad() {
   link.click()
   URL.revokeObjectURL(url)
 
-  mostrarNotificacion("Copia de seguridad creada correctamente", "success")
+  mostrarNotificacion("Copia de seguridad creada correctamente", "success", { tabId: "settings" })
 }
 
 function restaurarDatos(event) {
@@ -930,7 +1025,7 @@ function restaurarDatos(event) {
         inicializarConfiguracion()
       }
 
-      mostrarNotificacion("Datos restaurados correctamente", "success")
+      mostrarNotificacion("Datos restaurados correctamente", "success", { tabId: "settings" })
 
       // Actualizar vista actual
       const inputActual = document.getElementById("search-input").value.trim()
@@ -942,7 +1037,7 @@ function restaurarDatos(event) {
 
       actualizarEstadisticas()
     } catch (error) {
-      mostrarNotificacion("Error al restaurar los datos. Archivo inválido.", "error")
+      mostrarNotificacion("Error al restaurar los datos. Archivo inválido.", "error", { tabId: "settings" })
     }
   }
   reader.readAsText(file)
@@ -963,6 +1058,9 @@ function borrarTodosLosDatos() {
     speechRate: 1,
     selectedVoice: null,
     voices: [],
+    themePreset: "default",
+    customPrimary: "#667eea",
+    customAccent: "#f59e0b",
   }
   inicializarConfiguracion()
 
@@ -970,7 +1068,7 @@ function borrarTodosLosDatos() {
   mostrarResultados([])
   actualizarEstadisticas()
 
-  mostrarNotificacion("Todos los datos han sido borrados", "info")
+  mostrarNotificacion("Todos los datos han sido borrados", "info", { tabId: "settings" })
 }
 
 function buscarTérmino() {
@@ -1011,58 +1109,61 @@ function mostrarResultados(resultados) {
     const item = document.createElement("li")
     item.className = "result-item"
 
-    // Verificar si el término está en favoritos
+    // Verificar si el termino esta en favoritos
     const favoritos = obtenerFavoritos()
     const esFavorito = favoritos.some((fav) => fav.term.toLowerCase() === t.term.toLowerCase())
-    const iconoFavorito = esFavorito ? "⭐" : "☆"
+    const iconoFavorito = esFavorito ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>'
     const claseFavorito = esFavorito ? "favorited" : ""
 
     item.innerHTML = `
-            <button class="favorite-button ${claseFavorito}" onclick="toggleFavorito('${t.term}')" title="${esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}">
+            <button class="favorite-button ${claseFavorito}" onclick="toggleFavorito('${t.term}', event)" title="${esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}">
                 ${iconoFavorito}
             </button>
             <div class="result-header">
                 <span class="result-term">${t.term}</span>
             </div>
-            <div class="result-pronunciation">/${t.pronunciation || ""}/ <button onclick="pronunciar('${t.term}')">🔊</button></div>
+            <div class="result-pronunciation">/${t.pronunciation || ""}/ <button class="icon-button" onclick="pronunciar('${t.term}')" title="Escuchar"><i class="fas fa-volume-up"></i></button></div>
             <div class="result-translation"><strong>Traducción:</strong> ${t.translation || "N/A"}</div>
             <div class="result-definition"><strong>Definición:</strong> ${t.definition || "N/A"}</div>
-            <div class="result-definition"><strong>Ejemplos:</strong><br> ${t.examples?.map((e) => `• ${e}`).join("<br>") || "No hay ejemplos"}</div>
+            <div class="result-definition"><strong>Ejemplos:</strong><br> ${t.examples?.map((e) => `&bull; ${e}`).join("<br>") || "No hay ejemplos"}</div>
             <div class="result-category">${t.category || "otros"}</div>
         `
     lista.appendChild(item)
   })
 }
 
-function toggleFavorito(termino) {
+function toggleFavorito(termino, event) {
   const glosario = obtenerGlosario()
   const terminoCompleto = glosario.find((t) => t.term.toLowerCase() === termino.toLowerCase())
 
   if (!terminoCompleto) {
-    mostrarNotificacion("Término no encontrado", "error")
+    mostrarNotificacion("TAcrmino no encontrado", "error", { tabId: "search" })
     return
   }
 
   const favoritos = obtenerFavoritos()
   const indiceExistente = favoritos.findIndex((fav) => fav.term.toLowerCase() === termino.toLowerCase())
-
-  if (indiceExistente !== -1) {
-    // Remover de favoritos
-    favoritos.splice(indiceExistente, 1)
-    localStorage.setItem("favoritos", JSON.stringify(favoritos))
-    mostrarNotificacion(`"${termino}" removido de favoritos`, "info")
-  } else {
-    // Agregar a favoritos
-    const nuevoFavorito = {
-      ...terminoCompleto,
-      fechaFavorito: new Date().toISOString(),
-    }
-    favoritos.push(nuevoFavorito)
-    localStorage.setItem("favoritos", JSON.stringify(favoritos))
-    mostrarNotificacion(`"${termino}" agregado a favoritos`, "success")
+  const boton = event?.currentTarget || event?.target
+  const actualizarBoton = (esFavorito) => {
+    if (!boton) return
+    boton.classList.toggle("favorited", esFavorito)
+    boton.innerHTML = esFavorito ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>'
+    boton.setAttribute("title", esFavorito ? "Quitar de favoritos" : "Agregar a favoritos")
   }
 
-  // Actualizar la vista actual
+  if (indiceExistente !== -1) {
+    favoritos.splice(indiceExistente, 1)
+    localStorage.setItem("favoritos", JSON.stringify(favoritos))
+    actualizarBoton(false)
+    mostrarNotificacion(`"${termino}" removido de favoritos`, "info", { tabId: "favorites" })
+  } else {
+    const nuevoFavorito = { ...terminoCompleto, fechaFavorito: new Date().toISOString() }
+    favoritos.push(nuevoFavorito)
+    localStorage.setItem("favoritos", JSON.stringify(favoritos))
+    actualizarBoton(true)
+    mostrarNotificacion(`"${termino}" agregado a favoritos`, "success", { tabId: "favorites" })
+  }
+
   const inputActual = document.getElementById("search-input").value.trim()
   if (inputActual) {
     buscarEnTiempoReal()
@@ -1070,24 +1171,97 @@ function toggleFavorito(termino) {
     mostrarResultados(obtenerGlosario())
   }
 
-  // Actualizar estadísticas y favoritos si están visibles
   actualizarEstadisticas()
   if (document.getElementById("favorites").classList.contains("active")) {
     mostrarFavoritos()
   }
 }
-
 function obtenerGlosario() {
   return JSON.parse(localStorage.getItem("glosario")) || []
 }
 
-function mostrarNotificacion(mensaje, tipo = "info") {
-  const n = document.getElementById("notification")
-  n.textContent = mensaje
-  n.className = `notification show ${tipo}`
-  setTimeout(() => {
-    n.className = "notification"
-  }, 4000)
+function obtenerNombreSeccion(tabId) {
+  const link = document.querySelector(`nav a[data-tab="${tabId}"]`)
+  return link ? link.textContent.trim() : tabId
+}
+
+function restackNotifications() {
+  const container = document.getElementById("notification-container")
+  if (!container) return
+
+  const cards = Array.from(container.querySelectorAll(".notification-card"))
+  const maxVisible = 3
+  if (cards.length > maxVisible) {
+    cards.slice(0, cards.length - maxVisible).forEach((c) => {
+      c.classList.remove("show")
+      c.remove()
+    })
+  }
+
+  const visibles = Array.from(container.querySelectorAll(".notification-card"))
+  visibles.forEach((card, idx) => {
+    const depth = visibles.length - idx - 1
+    if (depth > 0) {
+      card.classList.add("stacked")
+      card.style.setProperty("--stack-index", depth)
+    } else {
+      card.classList.remove("stacked")
+      card.style.removeProperty("--stack-index")
+    }
+  })
+}
+
+function mostrarNotificacion(mensaje, tipo = "info", opciones = {}) {
+  const container = document.getElementById("notification-container")
+  if (!container) return
+
+  const { tabId = null, duration = 4000 } = opciones
+  const card = document.createElement("div")
+  card.className = `notification-card ${tipo}${tabId ? " clickable" : ""}`
+
+  const texto = document.createElement("div")
+  texto.className = "notification-text"
+  texto.textContent = mensaje
+  card.appendChild(texto)
+
+  if (tabId) {
+    const pill = document.createElement("span")
+    pill.className = "notification-pill"
+    pill.textContent = obtenerNombreSeccion(tabId)
+    card.appendChild(pill)
+    card.title = `Ir a ${pill.textContent}`
+  }
+
+  container.appendChild(card)
+  restackNotifications()
+
+  requestAnimationFrame(() => {
+    card.classList.add("show")
+  })
+
+  const removeCard = () => {
+    card.classList.remove("show")
+    setTimeout(() => {
+      card.remove()
+      restackNotifications()
+    }, 200)
+  }
+
+  let timeoutId = setTimeout(removeCard, duration)
+
+  card.addEventListener("mouseenter", () => {
+    clearTimeout(timeoutId)
+  })
+  card.addEventListener("mouseleave", () => {
+    timeoutId = setTimeout(removeCard, duration / 2)
+  })
+
+  card.addEventListener("click", () => {
+    if (tabId) {
+      activarTab(tabId)
+    }
+    removeCard()
+  })
 }
 
 function pronunciar(texto) {
@@ -1119,7 +1293,7 @@ function agregarTermino(event) {
   const categoria = document.getElementById("category-input").value
 
   if (!termino || !traduccion || !definicion) {
-    mostrarNotificacion("Por favor completa todos los campos obligatorios", "error")
+    mostrarNotificacion("Por favor completa todos los campos obligatorios", "error", { tabId: "add" })
     return
   }
 
@@ -1143,14 +1317,14 @@ function agregarTermino(event) {
   // Verificar si ya existe
   const existe = glosario.find((t) => t.term.toLowerCase() === termino.toLowerCase())
   if (existe) {
-    mostrarNotificacion("Este término ya existe en el glosario", "warning")
+    mostrarNotificacion("Este término ya existe en el glosario", "warning", { tabId: "add" })
     return
   }
 
   glosario.push(nuevoTermino)
   localStorage.setItem("glosario", JSON.stringify(glosario))
 
-  mostrarNotificacion(`Término "${termino}" agregado correctamente`, "success")
+  mostrarNotificacion(`Término "${termino}" agregado correctamente`, "success", { tabId: "search" })
 
   // Limpiar formulario
   document.getElementById("add-term-form").reset()
@@ -1173,7 +1347,7 @@ function exportarDatos(formato) {
   const glosario = obtenerGlosario()
 
   if (glosario.length === 0) {
-    mostrarNotificacion("No hay términos para exportar", "warning")
+    mostrarNotificacion("No hay términos para exportar", "warning", { tabId: "add" })
     return
   }
 
@@ -1225,130 +1399,130 @@ function exportarDatos(formato) {
   link.click()
   URL.revokeObjectURL(url)
 
-  mostrarNotificacion(`Glosario exportado como ${formato.toUpperCase()}`, "success")
+  mostrarNotificacion(`Glosario exportado como ${formato.toUpperCase()}`, "success", { tabId: "add" })
 }
 
 const verbosIrregulares = [
-  { infinitivo: "arise", pasado: "arose" },
-  { infinitivo: "awake", pasado: "awoke" },
-  { infinitivo: "be", pasado: "was / were" },
-  { infinitivo: "bear", pasado: "bore" },
-  { infinitivo: "beat", pasado: "beat" },
-  { infinitivo: "become", pasado: "became" },
-  { infinitivo: "begin", pasado: "began" },
-  { infinitivo: "bend", pasado: "bent" },
-  { infinitivo: "bet", pasado: "bet" },
-  { infinitivo: "bid", pasado: "bid" },
-  { infinitivo: "bite", pasado: "bit" },
-  { infinitivo: "bleed", pasado: "bled" },
-  { infinitivo: "blow", pasado: "blew" },
-  { infinitivo: "break", pasado: "broke" },
-  { infinitivo: "bring", pasado: "brought" },
-  { infinitivo: "broadcast", pasado: "broadcast" },
-  { infinitivo: "build", pasado: "built" },
-  { infinitivo: "burn", pasado: "burnt / burned" },
-  { infinitivo: "burst", pasado: "burst" },
-  { infinitivo: "buy", pasado: "bought" },
-  { infinitivo: "catch", pasado: "caught" },
-  { infinitivo: "choose", pasado: "chose" },
-  { infinitivo: "come", pasado: "came" },
-  { infinitivo: "cost", pasado: "cost" },
-  { infinitivo: "creep", pasado: "crept" },
-  { infinitivo: "cut", pasado: "cut" },
-  { infinitivo: "deal", pasado: "dealt" },
-  { infinitivo: "dig", pasado: "dug" },
-  { infinitivo: "do", pasado: "did" },
-  { infinitivo: "draw", pasado: "drew" },
-  { infinitivo: "dream", pasado: "dreamt / dreamed" },
-  { infinitivo: "drink", pasado: "drank" },
-  { infinitivo: "drive", pasado: "drove" },
-  { infinitivo: "eat", pasado: "ate" },
-  { infinitivo: "fall", pasado: "fell" },
-  { infinitivo: "feed", pasado: "fed" },
-  { infinitivo: "feel", pasado: "felt" },
-  { infinitivo: "fight", pasado: "fought" },
-  { infinitivo: "find", pasado: "found" },
-  { infinitivo: "fly", pasado: "flew" },
-  { infinitivo: "forbid", pasado: "forbade" },
-  { infinitivo: "forget", pasado: "forgot" },
-  { infinitivo: "forgive", pasado: "forgave" },
-  { infinitivo: "freeze", pasado: "froze" },
-  { infinitivo: "get", pasado: "got" },
-  { infinitivo: "give", pasado: "gave" },
-  { infinitivo: "go", pasado: "went" },
-  { infinitivo: "grow", pasado: "grew" },
-  { infinitivo: "hang", pasado: "hung" },
-  { infinitivo: "have", pasado: "had" },
-  { infinitivo: "hear", pasado: "heard" },
-  { infinitivo: "hide", pasado: "hid" },
-  { infinitivo: "hit", pasado: "hit" },
-  { infinitivo: "hold", pasado: "held" },
-  { infinitivo: "hurt", pasado: "hurt" },
-  { infinitivo: "keep", pasado: "kept" },
-  { infinitivo: "kneel", pasado: "knelt / kneeled" },
-  { infinitivo: "know", pasado: "knew" },
-  { infinitivo: "lay", pasado: "laid" },
-  { infinitivo: "lead", pasado: "led" },
-  { infinitivo: "leave", pasado: "left" },
-  { infinitivo: "lend", pasado: "lent" },
-  { infinitivo: "let", pasado: "let" },
-  { infinitivo: "lie", pasado: "lay" },
-  { infinitivo: "light", pasado: "lit / lighted" },
-  { infinitivo: "lose", pasado: "lost" },
-  { infinitivo: "make", pasado: "made" },
-  { infinitivo: "mean", pasado: "meant" },
-  { infinitivo: "meet", pasado: "met" },
-  { infinitivo: "pay", pasado: "paid" },
-  { infinitivo: "put", pasado: "put" },
-  { infinitivo: "read", pasado: "read" },
-  { infinitivo: "ride", pasado: "rode" },
-  { infinitivo: "ring", pasado: "rang" },
-  { infinitivo: "rise", pasado: "rose" },
-  { infinitivo: "run", pasado: "ran" },
-  { infinitivo: "say", pasado: "said" },
-  { infinitivo: "see", pasado: "saw" },
-  { infinitivo: "seek", pasado: "sought" },
-  { infinitivo: "sell", pasado: "sold" },
-  { infinitivo: "send", pasado: "sent" },
-  { infinitivo: "set", pasado: "set" },
-  { infinitivo: "shake", pasado: "shook" },
-  { infinitivo: "shine", pasado: "shone" },
-  { infinitivo: "shoot", pasado: "shot" },
-  { infinitivo: "show", pasado: "showed" },
-  { infinitivo: "shut", pasado: "shut" },
-  { infinitivo: "sing", pasado: "sang" },
-  { infinitivo: "sink", pasado: "sank" },
-  { infinitivo: "sit", pasado: "sat" },
-  { infinitivo: "sleep", pasado: "slept" },
-  { infinitivo: "slide", pasado: "slid" },
-  { infinitivo: "speak", pasado: "spoke" },
-  { infinitivo: "spend", pasado: "spent" },
-  { infinitivo: "spill", pasado: "spilt / spilled" },
-  { infinitivo: "spin", pasado: "spun" },
-  { infinitivo: "spit", pasado: "spat" },
-  { infinitivo: "split", pasado: "split" },
-  { infinitivo: "spread", pasado: "spread" },
-  { infinitivo: "stand", pasado: "stood" },
-  { infinitivo: "steal", pasado: "stole" },
-  { infinitivo: "stick", pasado: "stuck" },
-  { infinitivo: "sting", pasado: "stung" },
-  { infinitivo: "stink", pasado: "stank" },
-  { infinitivo: "strike", pasado: "struck" },
-  { infinitivo: "swear", pasado: "swore" },
-  { infinitivo: "sweep", pasado: "swept" },
-  { infinitivo: "swim", pasado: "swam" },
-  { infinitivo: "swing", pasado: "swung" },
-  { infinitivo: "take", pasado: "took" },
-  { infinitivo: "teach", pasado: "taught" },
-  { infinitivo: "tear", pasado: "tore" },
-  { infinitivo: "tell", pasado: "told" },
-  { infinitivo: "think", pasado: "thought" },
-  { infinitivo: "throw", pasado: "threw" },
-  { infinitivo: "understand", pasado: "understood" },
-  { infinitivo: "wake", pasado: "woke" },
-  { infinitivo: "wear", pasado: "wore" },
-  { infinitivo: "win", pasado: "won" },
-  { infinitivo: "write", pasado: "wrote" },
+  { infinitivo: "arise", pasado: "arose", participio: "arisen" },
+  { infinitivo: "awake", pasado: "awoke", participio: "awoken" },
+  { infinitivo: "be", pasado: "was / were", participio: "been" },
+  { infinitivo: "bear", pasado: "bore", participio: "borne" },
+  { infinitivo: "beat", pasado: "beat", participio: "beaten" },
+  { infinitivo: "become", pasado: "became", participio: "become" },
+  { infinitivo: "begin", pasado: "began", participio: "begun" },
+  { infinitivo: "bend", pasado: "bent", participio: "bent" },
+  { infinitivo: "bet", pasado: "bet", participio: "bet" },
+  { infinitivo: "bid", pasado: "bid", participio: "bid" },
+  { infinitivo: "bite", pasado: "bit", participio: "bitten" },
+  { infinitivo: "bleed", pasado: "bled", participio: "bled" },
+  { infinitivo: "blow", pasado: "blew", participio: "blown" },
+  { infinitivo: "break", pasado: "broke", participio: "broken" },
+  { infinitivo: "bring", pasado: "brought", participio: "brought" },
+  { infinitivo: "broadcast", pasado: "broadcast", participio: "broadcast" },
+  { infinitivo: "build", pasado: "built", participio: "built" },
+  { infinitivo: "burn", pasado: "burnt / burned", participio: "burnt / burned" },
+  { infinitivo: "burst", pasado: "burst", participio: "burst" },
+  { infinitivo: "buy", pasado: "bought", participio: "bought" },
+  { infinitivo: "catch", pasado: "caught", participio: "caught" },
+  { infinitivo: "choose", pasado: "chose", participio: "chosen" },
+  { infinitivo: "come", pasado: "came", participio: "come" },
+  { infinitivo: "cost", pasado: "cost", participio: "cost" },
+  { infinitivo: "creep", pasado: "crept", participio: "crept" },
+  { infinitivo: "cut", pasado: "cut", participio: "cut" },
+  { infinitivo: "deal", pasado: "dealt", participio: "dealt" },
+  { infinitivo: "dig", pasado: "dug", participio: "dug" },
+  { infinitivo: "do", pasado: "did", participio: "done" },
+  { infinitivo: "draw", pasado: "drew", participio: "drawn" },
+  { infinitivo: "dream", pasado: "dreamt / dreamed", participio: "dreamt / dreamed" },
+  { infinitivo: "drink", pasado: "drank", participio: "drunk" },
+  { infinitivo: "drive", pasado: "drove", participio: "driven" },
+  { infinitivo: "eat", pasado: "ate", participio: "eaten" },
+  { infinitivo: "fall", pasado: "fell", participio: "fallen" },
+  { infinitivo: "feed", pasado: "fed", participio: "fed" },
+  { infinitivo: "feel", pasado: "felt", participio: "felt" },
+  { infinitivo: "fight", pasado: "fought", participio: "fought" },
+  { infinitivo: "find", pasado: "found", participio: "found" },
+  { infinitivo: "fly", pasado: "flew", participio: "flown" },
+  { infinitivo: "forbid", pasado: "forbade", participio: "forbidden" },
+  { infinitivo: "forget", pasado: "forgot", participio: "forgotten" },
+  { infinitivo: "forgive", pasado: "forgave", participio: "forgiven" },
+  { infinitivo: "freeze", pasado: "froze", participio: "frozen" },
+  { infinitivo: "get", pasado: "got", participio: "got / gotten" },
+  { infinitivo: "give", pasado: "gave", participio: "given" },
+  { infinitivo: "go", pasado: "went", participio: "gone" },
+  { infinitivo: "grow", pasado: "grew", participio: "grown" },
+  { infinitivo: "hang", pasado: "hung", participio: "hung" },
+  { infinitivo: "have", pasado: "had", participio: "had" },
+  { infinitivo: "hear", pasado: "heard", participio: "heard" },
+  { infinitivo: "hide", pasado: "hid", participio: "hidden" },
+  { infinitivo: "hit", pasado: "hit", participio: "hit" },
+  { infinitivo: "hold", pasado: "held", participio: "held" },
+  { infinitivo: "hurt", pasado: "hurt", participio: "hurt" },
+  { infinitivo: "keep", pasado: "kept", participio: "kept" },
+  { infinitivo: "kneel", pasado: "knelt / kneeled", participio: "knelt / kneeled" },
+  { infinitivo: "know", pasado: "knew", participio: "known" },
+  { infinitivo: "lay", pasado: "laid", participio: "laid" },
+  { infinitivo: "lead", pasado: "led", participio: "led" },
+  { infinitivo: "leave", pasado: "left", participio: "left" },
+  { infinitivo: "lend", pasado: "lent", participio: "lent" },
+  { infinitivo: "let", pasado: "let", participio: "let" },
+  { infinitivo: "lie", pasado: "lay", participio: "lain" },
+  { infinitivo: "light", pasado: "lit / lighted", participio: "lit / lighted" },
+  { infinitivo: "lose", pasado: "lost", participio: "lost" },
+  { infinitivo: "make", pasado: "made", participio: "made" },
+  { infinitivo: "mean", pasado: "meant", participio: "meant" },
+  { infinitivo: "meet", pasado: "met", participio: "met" },
+  { infinitivo: "pay", pasado: "paid", participio: "paid" },
+  { infinitivo: "put", pasado: "put", participio: "put" },
+  { infinitivo: "read", pasado: "read", participio: "read" },
+  { infinitivo: "ride", pasado: "rode", participio: "ridden" },
+  { infinitivo: "ring", pasado: "rang", participio: "rung" },
+  { infinitivo: "rise", pasado: "rose", participio: "risen" },
+  { infinitivo: "run", pasado: "ran", participio: "run" },
+  { infinitivo: "say", pasado: "said", participio: "said" },
+  { infinitivo: "see", pasado: "saw", participio: "seen" },
+  { infinitivo: "seek", pasado: "sought", participio: "sought" },
+  { infinitivo: "sell", pasado: "sold", participio: "sold" },
+  { infinitivo: "send", pasado: "sent", participio: "sent" },
+  { infinitivo: "set", pasado: "set", participio: "set" },
+  { infinitivo: "shake", pasado: "shook", participio: "shaken" },
+  { infinitivo: "shine", pasado: "shone", participio: "shone" },
+  { infinitivo: "shoot", pasado: "shot", participio: "shot" },
+  { infinitivo: "show", pasado: "showed", participio: "shown / showed" },
+  { infinitivo: "shut", pasado: "shut", participio: "shut" },
+  { infinitivo: "sing", pasado: "sang", participio: "sung" },
+  { infinitivo: "sink", pasado: "sank", participio: "sunk" },
+  { infinitivo: "sit", pasado: "sat", participio: "sat" },
+  { infinitivo: "sleep", pasado: "slept", participio: "slept" },
+  { infinitivo: "slide", pasado: "slid", participio: "slid" },
+  { infinitivo: "speak", pasado: "spoke", participio: "spoken" },
+  { infinitivo: "spend", pasado: "spent", participio: "spent" },
+  { infinitivo: "spill", pasado: "spilt / spilled", participio: "spilt / spilled" },
+  { infinitivo: "spin", pasado: "spun", participio: "spun" },
+  { infinitivo: "spit", pasado: "spat", participio: "spat / spit" },
+  { infinitivo: "split", pasado: "split", participio: "split" },
+  { infinitivo: "spread", pasado: "spread", participio: "spread" },
+  { infinitivo: "stand", pasado: "stood", participio: "stood" },
+  { infinitivo: "steal", pasado: "stole", participio: "stolen" },
+  { infinitivo: "stick", pasado: "stuck", participio: "stuck" },
+  { infinitivo: "sting", pasado: "stung", participio: "stung" },
+  { infinitivo: "stink", pasado: "stank", participio: "stunk" },
+  { infinitivo: "strike", pasado: "struck", participio: "struck" },
+  { infinitivo: "swear", pasado: "swore", participio: "sworn" },
+  { infinitivo: "sweep", pasado: "swept", participio: "swept" },
+  { infinitivo: "swim", pasado: "swam", participio: "swum" },
+  { infinitivo: "swing", pasado: "swung", participio: "swung" },
+  { infinitivo: "take", pasado: "took", participio: "taken" },
+  { infinitivo: "teach", pasado: "taught", participio: "taught" },
+  { infinitivo: "tear", pasado: "tore", participio: "torn" },
+  { infinitivo: "tell", pasado: "told", participio: "told" },
+  { infinitivo: "think", pasado: "thought", participio: "thought" },
+  { infinitivo: "throw", pasado: "threw", participio: "thrown" },
+  { infinitivo: "understand", pasado: "understood", participio: "understood" },
+  { infinitivo: "wake", pasado: "woke", participio: "woken" },
+  { infinitivo: "wear", pasado: "wore", participio: "worn" },
+  { infinitivo: "win", pasado: "won", participio: "won" },
+  { infinitivo: "write", pasado: "wrote", participio: "written" },
 ]
 
 function renderizarVerbos() {
@@ -1358,7 +1532,7 @@ function renderizarVerbos() {
   tbody.innerHTML = ""
   verbosIrregulares.forEach((v) => {
     const tr = document.createElement("tr")
-    tr.innerHTML = `<td>${v.infinitivo}</td><td>${v.pasado}</td>`
+    tr.innerHTML = `<td>${v.infinitivo}</td><td>${v.pasado}</td><td>${v.participio}</td>`
     tbody.appendChild(tr)
   })
 }
@@ -1378,7 +1552,10 @@ function buscarVerbosIrregulares() {
 
   // Filtrar verbos
   const verbosEncontrados = verbosIrregulares.filter(
-    (v) => v.infinitivo.toLowerCase().includes(termino) || v.pasado.toLowerCase().includes(termino),
+    (v) =>
+      v.infinitivo.toLowerCase().includes(termino) ||
+      v.pasado.toLowerCase().includes(termino) ||
+      v.participio.toLowerCase().includes(termino),
   )
 
   // Mostrar resultados
@@ -1388,8 +1565,9 @@ function buscarVerbosIrregulares() {
     // Resaltar coincidencias
     const infinitivoResaltado = resaltarCoincidencia(v.infinitivo, termino)
     const pasadoResaltado = resaltarCoincidencia(v.pasado, termino)
+    const participioResaltado = resaltarCoincidencia(v.participio, termino)
 
-    tr.innerHTML = `<td>${infinitivoResaltado}</td><td>${pasadoResaltado}</td>`
+    tr.innerHTML = `<td>${infinitivoResaltado}</td><td>${pasadoResaltado}</td><td>${participioResaltado}</td>`
     tbody.appendChild(tr)
   })
 
@@ -1452,28 +1630,35 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 })
 
+function activarTab(tabId, opciones = {}) {
+  if (!tabId) return
+  document.querySelectorAll(".tab-content").forEach((sec) => sec.classList.remove("active"))
+
+  const targetSection = document.getElementById(tabId)
+  if (targetSection) {
+    targetSection.classList.add("active")
+    if (opciones.scroll !== false) {
+      targetSection.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }
+
+  const link = document.querySelector(`nav a[data-tab="${tabId}"]`)
+  document.querySelectorAll("nav a[data-tab]").forEach((a) => a.classList.remove("active"))
+  if (link) {
+    link.classList.add("active")
+  }
+
+  if (tabId === "favorites") {
+    mostrarFavoritos()
+  }
+}
+
 // Manejo de pestañas del menú de navegación
 document.querySelectorAll("nav a[data-tab]").forEach((link) => {
   link.addEventListener("click", (e) => {
     e.preventDefault()
-
     const tabId = link.getAttribute("data-tab")
-
-    // Activar la sección correspondiente
-    document.querySelectorAll(".tab-content").forEach((sec) => {
-      sec.classList.remove("active")
-    })
-
-    const targetSection = document.getElementById(tabId)
-    if (targetSection) {
-      targetSection.classList.add("active")
-    }
-
-    // Cambiar clase activa en el nav
-    document.querySelectorAll("nav a[data-tab]").forEach((a) => {
-      a.classList.remove("active")
-    })
-    link.classList.add("active")
+    activarTab(tabId)
   })
 })
 
@@ -1523,7 +1708,7 @@ function mostrarFavoritos() {
     item.className = "favorite-item"
     item.innerHTML = `
       <button class="favorite-remove" onclick="removerFavorito('${fav.term}')" title="Remover de favoritos">
-        ×
+        &times;
       </button>
       <div class="favorite-term">${fav.term}</div>
       <div class="favorite-translation">${fav.translation}</div>
@@ -1534,7 +1719,7 @@ function mostrarFavoritos() {
     item.addEventListener("click", (e) => {
       if (!e.target.classList.contains("favorite-remove")) {
         document.getElementById("search-input").value = fav.term
-        // Cambiar a la pestaña de búsqueda
+        // Cambiar a la pestana de busqueda
         document.querySelector('nav a[data-tab="search"]').click()
         buscarTérmino()
       }
@@ -1548,7 +1733,7 @@ function removerFavorito(termino) {
   const favoritos = obtenerFavoritos()
   const nuevosFavoritos = favoritos.filter((fav) => fav.term.toLowerCase() !== termino.toLowerCase())
   localStorage.setItem("favoritos", JSON.stringify(nuevosFavoritos))
-  mostrarNotificacion(`"${termino}" removido de favoritos`, "info")
+  mostrarNotificacion(`"${termino}" removido de favoritos`, "info", { tabId: "favorites" })
   mostrarFavoritos()
   actualizarEstadisticas()
 }
@@ -1557,7 +1742,7 @@ function exportarFavoritos() {
   const favoritos = obtenerFavoritos()
 
   if (favoritos.length === 0) {
-    mostrarNotificacion("No hay favoritos para exportar", "warning")
+    mostrarNotificacion("No hay favoritos para exportar", "warning", { tabId: "favorites" })
     return
   }
 
@@ -1570,7 +1755,7 @@ function exportarFavoritos() {
   link.click()
   URL.revokeObjectURL(url)
 
-  mostrarNotificacion("Favoritos exportados correctamente", "success")
+  mostrarNotificacion("Favoritos exportados correctamente", "success", { tabId: "favorites" })
 }
 
 // Agregar event listener para mostrar favoritos cuando se active la pestaña
@@ -1583,3 +1768,509 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 })
+
+// ==================== Búsqueda TIPO GOOGLE ====================
+
+// Funciones para historial de búsquedas
+function obtenerHistorialBusquedas() {
+  return JSON.parse(localStorage.getItem("historialBusquedas")) || []
+}
+
+function guardarBusqueda(termino) {
+  if (!termino || termino.trim() === "") return
+  
+  const historial = obtenerHistorialBusquedas()
+  const terminoLower = termino.toLowerCase().trim()
+  
+  // Remover si ya existe
+  const index = historial.findIndex(h => h.toLowerCase() === terminoLower)
+  if (index !== -1) {
+    historial.splice(index, 1)
+  }
+  
+  // Agregar al inicio
+  historial.unshift(terminoLower)
+  
+  // Limitar a 20 búsquedas
+  if (historial.length > 20) {
+    historial.pop()
+  }
+  
+  localStorage.setItem("historialBusquedas", JSON.stringify(historial))
+}
+
+// Función para generar sugerencias organizadas por secciones
+function generarSugerencias(query) {
+  const queryLower = query.toLowerCase().trim()
+  const sugerencias = {
+    terminos: [],
+    verbosIrregulares: [],
+    tiemposVerbales: []
+  }
+  
+  // Si no hay query, mostrar historial y sugerencias populares
+  if (queryLower === "") {
+    const historial = obtenerHistorialBusquedas()
+    return {
+      historial: historial.slice(0, 5),
+      terminos: [],
+      verbosIrregulares: [],
+      tiemposVerbales: []
+    }
+  }
+  
+  // Buscar en términos
+  const glosario = obtenerGlosario()
+  sugerencias.terminos = glosario
+    .filter(t => 
+      t.term.toLowerCase().includes(queryLower) ||
+      t.translation.toLowerCase().includes(queryLower)
+    )
+    .slice(0, 5)
+    .map(t => ({
+      tipo: "termino",
+      termino: t.term,
+      traduccion: t.translation,
+      datos: t
+    }))
+  
+  // Buscar en verbos irregulares
+  sugerencias.verbosIrregulares = verbosIrregulares
+    .filter(v => 
+      v.infinitivo.toLowerCase().includes(queryLower) ||
+      v.pasado.toLowerCase().includes(queryLower)
+    )
+    .slice(0, 5)
+    .map(v => ({
+      tipo: "verboIrregular",
+      termino: v.infinitivo,
+      traduccion: v.pasado,
+      datos: v
+    }))
+  
+  // Buscar en tiempos verbales (verbos comunes)
+  const verbosComunes = [
+    "work", "play", "open", "close", "listen", "watch", "learn", "fix", "build",
+    "start", "stop", "study", "help", "like", "love", "need", "want", "use", "try", "call", "talk"
+  ]
+  sugerencias.tiemposVerbales = verbosComunes
+    .filter(v => v.toLowerCase().includes(queryLower))
+    .slice(0, 5)
+    .map(v => ({
+      tipo: "tiempoVerbal",
+      termino: v,
+      traduccion: `Verbo: ${v}`,
+      datos: { verbo: v }
+    }))
+  
+  return sugerencias
+}
+
+// Función para renderizar sugerencias
+function renderizarSugerencias(query) {
+  const container = document.getElementById("search-suggestions")
+  if (!container) return
+  
+  const sugerencias = generarSugerencias(query)
+  
+  container.innerHTML = ""
+  
+  // Si no hay query, mostrar historial
+  if (query === "") {
+    if (sugerencias.historial && sugerencias.historial.length > 0) {
+      const historialSection = document.createElement("div")
+      historialSection.className = "suggestion-section"
+      historialSection.innerHTML = `
+        <div class="suggestion-section-header">
+          <i class="fas fa-clock"></i>
+          <span>Búsquedas recientes</span>
+        </div>
+        <div class="suggestion-list">
+          ${sugerencias.historial.map(term => `
+            <div class="suggestion-item" data-query="${term}">
+              <i class="fas fa-history"></i>
+              <span>${term}</span>
+            </div>
+          `).join("")}
+        </div>
+      `
+      container.appendChild(historialSection)
+    }
+    
+    // Mostrar sugerencias populares si no hay historial
+    if (!sugerencias.historial || sugerencias.historial.length === 0) {
+      const popularSection = document.createElement("div")
+      popularSection.className = "suggestion-section"
+      popularSection.innerHTML = `
+        <div class="suggestion-section-header">
+          <i class="fas fa-fire"></i>
+          <span>Sugerencias</span>
+        </div>
+        <div class="suggestion-list">
+          <div class="suggestion-item" data-query="work">
+            <i class="fas fa-search"></i>
+            <span>work</span>
+          </div>
+          <div class="suggestion-item" data-query="be">
+            <i class="fas fa-search"></i>
+            <span>be</span>
+          </div>
+          <div class="suggestion-item" data-query="have">
+            <i class="fas fa-search"></i>
+            <span>have</span>
+          </div>
+        </div>
+      `
+      container.appendChild(popularSection)
+    }
+    return
+  }
+  
+  // Mostrar sugerencias por sección
+  if (sugerencias.terminos.length > 0) {
+    const terminosSection = document.createElement("div")
+    terminosSection.className = "suggestion-section"
+    terminosSection.innerHTML = `
+      <div class="suggestion-section-header">
+        <i class="fas fa-book"></i>
+        <span>Términos</span>
+      </div>
+      <div class="suggestion-list">
+        ${sugerencias.terminos.map(item => `
+          <div class="suggestion-item" data-tipo="${item.tipo}" data-datos='${JSON.stringify(item.datos)}'>
+            <i class="fas fa-bookmark"></i>
+            <div class="suggestion-content">
+              <span class="suggestion-term">${resaltarTexto(item.termino, query)}</span>
+              <span class="suggestion-translation">${item.traduccion}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `
+    container.appendChild(terminosSection)
+  }
+  
+  if (sugerencias.verbosIrregulares.length > 0) {
+    const verbosSection = document.createElement("div")
+    verbosSection.className = "suggestion-section"
+    verbosSection.innerHTML = `
+      <div class="suggestion-section-header">
+        <i class="fas fa-language"></i>
+        <span>Verbos Irregulares</span>
+      </div>
+      <div class="suggestion-list">
+        ${sugerencias.verbosIrregulares.map(item => `
+          <div class="suggestion-item" data-tipo="${item.tipo}" data-datos='${JSON.stringify(item.datos)}'>
+            <i class="fas fa-language"></i>
+            <div class="suggestion-content">
+              <span class="suggestion-term">${resaltarTexto(item.termino, query)}</span>
+              <span class="suggestion-translation">Pasado: ${item.traduccion}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `
+    container.appendChild(verbosSection)
+  }
+  
+  if (sugerencias.tiemposVerbales.length > 0) {
+    const tiemposSection = document.createElement("div")
+    tiemposSection.className = "suggestion-section"
+    tiemposSection.innerHTML = `
+      <div class="suggestion-section-header">
+        <i class="fas fa-clock"></i>
+        <span>Tiempos Verbales</span>
+      </div>
+      <div class="suggestion-list">
+        ${sugerencias.tiemposVerbales.map(item => `
+          <div class="suggestion-item" data-tipo="${item.tipo}" data-datos='${JSON.stringify(item.datos)}'>
+            <i class="fas fa-clock"></i>
+            <div class="suggestion-content">
+              <span class="suggestion-term">${resaltarTexto(item.termino, query)}</span>
+              <span class="suggestion-translation">Verbo para tiempos verbales</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `
+    container.appendChild(tiemposSection)
+  }
+  
+  // Si no hay sugerencias
+  if (sugerencias.terminos.length === 0 && 
+      sugerencias.verbosIrregulares.length === 0 && 
+      sugerencias.tiemposVerbales.length === 0) {
+    container.innerHTML = `
+      <div class="no-suggestions">
+        <i class="fas fa-search"></i>
+        <p>No se encontraron resultados para "${query}"</p>
+      </div>
+    `
+  }
+  
+  // Agregar event listeners a las sugerencias
+  container.querySelectorAll(".suggestion-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const tipo = item.getAttribute("data-tipo")
+      const datosStr = item.getAttribute("data-datos")
+      const queryAttr = item.getAttribute("data-query")
+      
+      if (queryAttr) {
+        // Es una búsqueda del historial
+        document.getElementById("search-input-modal").value = queryAttr
+        renderizarSugerencias(queryAttr)
+        return
+      }
+      
+      if (tipo && datosStr) {
+        const datos = JSON.parse(datosStr)
+        mostrarResultadoSeleccionado(tipo, datos)
+        guardarBusqueda(datos.term || datos.infinitivo || datos.verbo || "")
+      }
+    })
+  })
+}
+
+// Función para resaltar texto
+function resaltarTexto(texto, query) {
+  if (!query) return texto
+  const regex = new RegExp(`(${query})`, "gi")
+  return texto.replace(regex, "<mark>$1</mark>")
+}
+
+// Función para mostrar resultado seleccionado
+function mostrarResultadoSeleccionado(tipo, datos) {
+  const suggestionsView = document.getElementById("search-suggestions")
+  const resultView = document.getElementById("search-result-view")
+  const resultContent = document.getElementById("search-result-content")
+  
+  if (!suggestionsView || !resultView || !resultContent) return
+  
+  suggestionsView.classList.add("hidden")
+  resultView.classList.remove("hidden")
+  
+  let html = ""
+  
+  if (tipo === "termino") {
+    const favoritos = obtenerFavoritos()
+    const esFavorito = favoritos.some(f => f.term.toLowerCase() === datos.term.toLowerCase())
+    
+    const termEscaped = datos.term.replace(/'/g, "&#39;").replace(/"/g, "&quot;")
+    const translationEscaped = (datos.translation || "N/A").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    const definitionEscaped = (datos.definition || "N/A").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    
+    html = `
+      <div class="result-detail-card">
+        <div class="result-detail-header">
+          <h2>${datos.term}</h2>
+          <div class="result-detail-actions">
+            <button class="icon-button" onclick="pronunciar('${termEscaped}')" title="Pronunciar">
+              <i class="fas fa-volume-up"></i>
+            </button>
+            <button class="icon-button ${esFavorito ? 'favorited' : ''}" onclick="toggleFavoritoDesdeModal('${termEscaped}')" title="${esFavorito ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
+              <i class="fas fa-star"></i>
+            </button>
+          </div>
+        </div>
+        <div class="result-detail-pronunciation">
+          <span>/${datos.pronunciation || ""}/</span>
+        </div>
+        <div class="result-detail-section">
+          <h3>Traducción</h3>
+          <p>${translationEscaped}</p>
+        </div>
+        <div class="result-detail-section">
+          <h3>Definición</h3>
+          <p>${definitionEscaped}</p>
+        </div>
+        ${datos.examples && datos.examples.length > 0 ? `
+          <div class="result-detail-section">
+            <h3>Ejemplos</h3>
+            <ul>
+              ${datos.examples.map(e => `<li>${e.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</li>`).join("")}
+            </ul>
+          </div>
+        ` : ""}
+        <div class="result-detail-category">
+          <span class="category-tag">${datos.category || "otros"}</span>
+        </div>
+      </div>
+    `
+  } else if (tipo === "verboIrregular") {
+    html = `
+      <div class="result-detail-card">
+        <div class="result-detail-header">
+          <h2>Verbo Irregular: ${datos.infinitivo}</h2>
+        </div>
+        <div class="verb-table-container">
+          <table class="verb-table">
+            <thead>
+              <tr>
+                <th>Infinitivo</th>
+                <th>Pasado Simple</th>
+                <th>Participio</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${datos.infinitivo}</td>
+                <td>${datos.pasado}</td>
+                <td>${datos.participio}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="result-detail-section">
+          <h3>Información</h3>
+          <p>Este es un verbo irregular en inglés. Su forma en pasado simple es <strong>${datos.pasado}</strong> y su participio es <strong>${datos.participio}</strong>.</p>
+        </div>
+      </div>
+    `
+  } else if (tipo === "tiempoVerbal") {
+    const verbo = datos.verbo
+    const forms = conjugateAll(verbo)
+    const subject = "I"
+    
+    html = `
+      <div class="result-detail-card">
+        <div class="result-detail-header">
+          <h2>Tiempos Verbales: ${verbo}</h2>
+        </div>
+        <div class="tenses-display-modal">
+          ${TENSES.map(t => {
+            const example = generateExampleText(t, forms, subject)
+            return `
+              <div class="tense-card-modal">
+                <h4>${t.name}</h4>
+                <div class="tense-structure">${t.structure}</div>
+                <div class="tense-example">${example}</div>
+              </div>
+            `
+          }).join("")}
+        </div>
+      </div>
+    `
+  }
+  
+  resultContent.innerHTML = html
+}
+
+// Función para volver a sugerencias
+function volverASugerencias() {
+  const suggestionsView = document.getElementById("search-suggestions")
+  const resultView = document.getElementById("search-result-view")
+  
+  if (!suggestionsView || !resultView) return
+  
+  suggestionsView.classList.remove("hidden")
+  resultView.classList.add("hidden")
+  
+  const input = document.getElementById("search-input-modal")
+  if (input) {
+    renderizarSugerencias(input.value)
+  }
+}
+
+// Función para toggle favorito desde el modal
+function toggleFavoritoDesdeModal(termino) {
+  toggleFavorito(termino)
+  
+  // Actualizar el botón de favorito en el modal
+  const favoritos = obtenerFavoritos()
+  const esFavorito = favoritos.some(f => f.term.toLowerCase() === termino.toLowerCase())
+  const button = document.querySelector(`button[onclick="toggleFavoritoDesdeModal('${termino}')"]`)
+  if (button) {
+    if (esFavorito) {
+      button.classList.add("favorited")
+      button.setAttribute("title", "Quitar de favoritos")
+    } else {
+      button.classList.remove("favorited")
+      button.setAttribute("title", "Agregar a favoritos")
+    }
+  }
+}
+
+// Inicializar búsqueda tipo Google
+function inicializarBusquedaGoogle() {
+  const searchButton = document.getElementById("search-button")
+  const searchModal = document.getElementById("search-modal")
+  const closeButton = document.getElementById("close-search-modal")
+  const clearButton = document.getElementById("clear-search-modal")
+  const searchInput = document.getElementById("search-input-modal")
+  const backButton = document.getElementById("back-to-suggestions")
+  const overlay = document.querySelector(".search-modal-overlay")
+  
+  if (!searchButton || !searchModal || !searchInput) return
+  
+  // Abrir modal
+  searchButton.addEventListener("click", (e) => {
+    e.preventDefault()
+    searchModal.classList.remove("hidden")
+    searchModal.classList.add("visible")
+    setTimeout(() => {
+      searchInput.focus()
+      renderizarSugerencias("")
+    }, 100)
+  })
+  
+  // Cerrar modal
+  const cerrarModal = () => {
+    searchModal.classList.remove("visible")
+    searchModal.classList.add("hidden")
+    volverASugerencias()
+    if (searchInput) searchInput.value = ""
+  }
+  
+  if (closeButton) {
+    closeButton.addEventListener("click", cerrarModal)
+  }
+  
+  if (overlay) {
+    overlay.addEventListener("click", cerrarModal)
+  }
+  
+  // Limpiar búsqueda
+  if (clearButton) {
+    clearButton.addEventListener("click", () => {
+      searchInput.value = ""
+      clearButton.style.display = "none"
+      renderizarSugerencias("")
+      volverASugerencias()
+    })
+  }
+  
+  // Búsqueda en tiempo real
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      const query = e.target.value
+      if (query.length > 0) {
+        if (clearButton) clearButton.style.display = "block"
+      } else {
+        if (clearButton) clearButton.style.display = "none"
+      }
+      renderizarSugerencias(query)
+    })
+    
+    // Guardar búsqueda al presionar Enter
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && searchInput.value.trim()) {
+        guardarBusqueda(searchInput.value.trim())
+      }
+    })
+  }
+  
+  // Volver a sugerencias
+  if (backButton) {
+    backButton.addEventListener("click", volverASugerencias)
+  }
+  
+  // Cerrar con Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && searchModal.classList.contains("visible")) {
+      cerrarModal()
+    }
+  })
+}
+
+
+
